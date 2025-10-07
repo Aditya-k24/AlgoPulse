@@ -1,0 +1,23 @@
+# Node/Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# IDE
+.DS_Store
+.vscode/
+
+# Env & secrets
+.env
+.env.*
+env.txt
+supabase/.temp/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
