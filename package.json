@@ -7,23 +7,48 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test:login": "node test-login.js",
+    "test:confirm": "node confirm-user.js",
+    "test:fix": "node fix-user.js",
+    "db:seed": "node seed-database.js",
+    "db:clean-seed": "node clean-and-seed.js"
   },
   "dependencies": {
-    "expo": "~51.0.0",
-    "expo-constants": "^16.0.2",
-    "expo-notifications": "~0.28.12",
-    "expo-status-bar": "~1.12.1",
-    "react": "18.2.0",
-    "react-native": "0.74.3",
+    "@expo/server": "^0.7.5",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-google-signin/google-signin": "^16.0.0",
+    "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.26",
     "@supabase/supabase-js": "^2.45.0",
-    "@react-native-async-storage/async-storage": "^1.23.1"
+    "expo": "~54.0.0",
+    "expo-auth-session": "^7.0.8",
+    "expo-constants": "~18.0.9",
+    "expo-crypto": "^15.0.7",
+    "expo-device": "~8.0.9",
+    "expo-linking": "~8.0.8",
+    "expo-notifications": "~0.32.12",
+    "expo-status-bar": "~3.0.8",
+    "expo-web-browser": "~15.0.8",
+    "firebase": "^12.4.0",
+    "nativewind": "^4.2.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.4",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-url-polyfill": "^2.0.0",
+    "react-native-vector-icons": "^10.0.3",
+    "react-native-web": "^0.21.0",
+    "react-native-webview": "13.15.0",
+    "tailwindcss": "^4.1.14"
   },
   "devDependencies": {
-    "@types/react": "^18.2.66",
+    "@types/react": "~18.2.79",
     "@types/react-native": "^0.73.0",
-    "typescript": "^5.4.5"
+    "dotenv": "^17.2.3",
+    "typescript": "~5.3.3"
   }
 }
