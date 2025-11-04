@@ -8,7 +8,7 @@ export interface ProblemPayload {
   sample_input?: string;
   sample_output?: string;
   constraints?: string;
-  solutions: { python: string; java: string; cpp: string };
+  solutions: { python: string; java: string; cpp: string; javascript: string };
   methods: string[];
 }
 
@@ -22,6 +22,7 @@ export function validateProblemPayload(p: any): p is ProblemPayload {
   if (typeof p.solutions.python !== 'string') return false;
   if (typeof p.solutions.java !== 'string') return false;
   if (typeof p.solutions.cpp !== 'string') return false;
+  if (typeof p.solutions.javascript !== 'string') return false;
   if (!Array.isArray(p.methods)) return false;
   return true;
 }

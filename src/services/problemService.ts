@@ -1,11 +1,11 @@
 import { supabase } from '../lib/supabase';
-import { Problem, Difficulty } from '../types';
-import { validateProblemPayload } from '../ai/problemSchema';
+import { Problem, Difficulty } from '../models/Problem';
+import { validateProblemPayload, ProblemPayload } from '../ai/problemSchema';
 
 export class ProblemService {
   static async generateProblem(
-    category: string,
-    difficulty: Difficulty,
+    category?: string,
+    difficulty?: Difficulty,
     languages?: string[]
   ): Promise<Problem> {
     const { data: { session } } = await supabase.auth.getSession();
@@ -14,6 +14,8 @@ export class ProblemService {
       throw new Error('Not authenticated');
     }
 
+    const recentProblems = await this.getRecentProblemTitles(20);
+    
     const response = await fetch(
       `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-problem`,
       {
@@ -26,6 +28,7 @@ export class ProblemService {
           category,
           difficulty,
           languages: languages || ['python', 'java', 'cpp'],
+          existingTitles: recentProblems,
         }),
       }
     );
@@ -41,20 +44,45 @@ export class ProblemService {
       throw new Error('Invalid problem payload received');
     }
 
-    // Save to database
+    const payload: ProblemPayload = data.problem;
+    
+    const existingProblem = await supabase
+      .from('problems')
+      .select('id, title')
+      .eq('title', payload.title)
+      .maybeSingle();
+    
+    if (existingProblem.data) {
+      console.log(`Problem "${payload.title}" already exists. Fetching existing problem.`);
+      const fetched = await this.getProblemById(existingProblem.data.id);
+      if (fetched) return fetched;
+    }
+    
     const { data: savedProblem, error } = await supabase
       .from('problems')
-      .insert(data.problem)
+      .insert({
+        ...payload,
+        sample_input: payload.sample_input || '',
+        sample_output: payload.sample_output || '',
+        constraints: payload.constraints || '',
+      })
       .select()
       .single();
 
     if (error) {
       console.error('Error saving problem:', error);
-      // Return the generated problem even if save fails
-      return { ...data.problem, id: `temp_${Date.now()}`, created_at: new Date().toISOString() };
+      return { 
+        ...payload, 
+        sample_input: payload.sample_input || '',
+        sample_output: payload.sample_output || '',
+        constraints: payload.constraints || '',
+        id: `temp_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        solutions: payload.solutions
+      } as Problem;
     }
 
-    return savedProblem;
+    return savedProblem as Problem;
   }
 
   static async getProblems(
@@ -69,11 +97,11 @@ export class ProblemService {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (category && category !== 'All') {
+    if (category) {
       query = query.eq('category', category);
     }
 
-    if (difficulty && difficulty !== 'All') {
+    if (difficulty) {
       query = query.eq('difficulty', difficulty);
     }
 
@@ -144,6 +172,21 @@ export class ProblemService {
     }
 
     return data || [];
+  }
+
+  static async getRecentProblemTitles(limit: number = 20): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('problems')
+      .select('title')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn('Failed to fetch recent problem titles:', error);
+      return [];
+    }
+
+    return data?.map(p => p.title) || [];
   }
 }
 

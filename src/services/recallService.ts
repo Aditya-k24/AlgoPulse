@@ -10,18 +10,22 @@ export class RecallService {
     plan: 'baseline' | 'time_crunch'
   ): Promise<void> {
     try {
-      // Save as solved locally
+      const solvedAt = new Date();
+      // Save as solved locally (set membership)
       await saveSolved(problemId);
+      // Save solved timestamp
+      const { saveSolvedAt } = await import('../utils/storage');
+      await saveSolvedAt(problemId, solvedAt);
       
-      // Schedule notifications
+      // Schedule notifications from solvedAt
       await NotificationService.scheduleRecallNotifications(
         problemId,
         problemTitle,
-        new Date(),
+        solvedAt,
         plan
       );
       
-      // Sync with server
+      // Sync with server using same solvedAt baseline
       await this.syncRecallsToServer(problemId, plan);
     } catch (error) {
       console.error('Error scheduling recall:', error);

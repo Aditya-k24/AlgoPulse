@@ -165,6 +165,11 @@ export const tw = {
   // Display
   hidden: { display: 'none' as const },
   
+  // Self alignment
+  'self-start': { alignSelf: 'flex-start' as const },
+  'self-center': { alignSelf: 'center' as const },
+  'self-end': { alignSelf: 'flex-end' as const },
+  
   // Width & Height
   'w-full': { width: '100%' },
   'h-full': { height: '100%' },
@@ -327,6 +332,7 @@ export const tw = {
   'border-primary-300': { borderColor: colors.primary[300] },
   'border-primary-400': { borderColor: colors.primary[400] },
   'border-primary-500': { borderColor: colors.primary[500] },
+  'border-primary-500/20': { borderColor: 'rgba(59, 130, 246, 0.2)' },
   'border-primary-600': { borderColor: colors.primary[600] },
   'border-primary-700': { borderColor: colors.primary[700] },
   'border-primary-800': { borderColor: colors.primary[800] },

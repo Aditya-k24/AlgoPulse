@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Language } from '../types';
+import { Language } from '../models/Problem';
 
 export interface ExecutionResult {
   output: string;
@@ -71,6 +71,10 @@ export class ExecutionService {
         verdict: 'error',
       };
     }
+  }
+
+  static async runCode(code: string, language: Language): Promise<ExecutionResult> {
+    return await this.executeCode(code, language);
   }
 
   static async submitSolution(

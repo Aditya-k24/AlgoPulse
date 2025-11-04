@@ -66,77 +66,84 @@ export default function DashboardScreen() {
 
   return (
     <View style={cn(tw.flex, tw['bg-dark-950'])}>
-      <View style={cn(tw.px(5), tw.pt(15))}>
-        <Text style={cn(tw['text-white'], tw['text-3xl'], tw['font-bold'], tw.mb(1))}>
-          Your Progress
-        </Text>
-        <Text style={cn(tw['text-dark-400'], tw['text-base'])}>
-          Keep your DSA heartbeat strong
-        </Text>
-      </View>
-
       <ScrollView
-        style={cn(tw.flex, tw.px(5))}
+        style={cn(tw.flex, tw.px(6))}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={cn(tw['flex-row'], tw['justify-between'], tw.mb(6))}>
-          <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4), tw['items-center'], tw.flex, tw.mx(1), tw.border, tw['border-dark-700'])}>
-            <Text style={cn(tw['text-primary-500'], tw['text-2xl'], tw['font-bold'], tw.mb(1))}>
+        <View style={tw.py(6)}>
+          <Text style={cn(tw['text-white'], tw['text-3xl'], tw['font-bold'], tw.mb(1))}>
+            Your Progress
+          </Text>
+          <Text style={cn(tw['text-dark-400'], tw['text-base'])}>
+            Keep your DSA heartbeat strong
+          </Text>
+        </View>
+
+        <View style={cn(tw['flex-row'], tw['justify-between'], tw.mb(8), tw.gap(3))}>
+          <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw['items-center'], tw.flex, tw.border, tw['border-dark-800'])}>
+            <Text style={cn(tw['text-primary-500'], tw['text-3xl'], tw['font-bold'], tw.mb(2))}>
               {stats.totalSolved}
             </Text>
-            <Text style={cn(tw['text-dark-400'], tw['text-xs'], tw['text-center'])}>
-              Problems Solved
+            <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
+              PROBLEMS SOLVED
             </Text>
           </View>
-          <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4), tw['items-center'], tw.flex, tw.mx(1), tw.border, tw['border-dark-700'])}>
-            <Text style={cn(tw['text-primary-500'], tw['text-2xl'], tw['font-bold'], tw.mb(1))}>
+          <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw['items-center'], tw.flex, tw.border, tw['border-dark-800'])}>
+            <Text style={cn(tw['text-primary-500'], tw['text-3xl'], tw['font-bold'], tw.mb(2))}>
               {stats.totalRecalls}
             </Text>
-            <Text style={cn(tw['text-dark-400'], tw['text-xs'], tw['text-center'])}>
-              Recalls Scheduled
+            <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
+              RECALLS SCHEDULED
             </Text>
           </View>
-          <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4), tw['items-center'], tw.flex, tw.mx(1), tw.border, tw['border-dark-700'])}>
-            <Text style={cn(tw['text-primary-500'], tw['text-2xl'], tw['font-bold'], tw.mb(1))}>
+          <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw['items-center'], tw.flex, tw.border, tw['border-dark-800'])}>
+            <Text style={cn(tw['text-primary-500'], tw['text-3xl'], tw['font-bold'], tw.mb(2))}>
               {stats.streak}
             </Text>
-            <Text style={cn(tw['text-dark-400'], tw['text-xs'], tw['text-center'])}>
-              Day Streak
+            <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
+              DAY STREAK
             </Text>
           </View>
         </View>
 
-        <View style={tw.mb(6)}>
-          <Text style={cn(tw['text-white'], tw['text-xl'], tw['font-bold'], tw.mb(4))}>
-            Category Mastery
+        <View style={tw.mb(8)}>
+          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+            CATEGORY MASTERY
           </Text>
-          <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4), tw.border, tw['border-dark-700'])}>
-            {Object.entries(stats.categoryStats).map(([category, count]) => (
-              <View key={category} style={cn(tw['flex-row'], tw['justify-between'], tw['items-center'], tw.py(2))}>
-                <View style={cn(tw['flex-row'], tw['items-center'])}>
-                  <View 
-                    style={cn(
-                      tw.w(2),
-                      tw.h(2),
-                      tw['rounded-full'],
-                      tw.mr(2),
-                      { backgroundColor: getCategoryColor(category) }
-                    )}
-                  />
-                  <Text style={cn(tw['text-white'], tw['text-sm'])}>{category}</Text>
+          <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}>
+            {Object.entries(stats.categoryStats).length === 0 ? (
+              <Text style={cn(tw['text-dark-400'], tw['text-sm'], tw['text-center'])}>
+                No category data yet
+              </Text>
+            ) : (
+              Object.entries(stats.categoryStats).map(([category, count]) => (
+                <View key={category} style={cn(tw['flex-row'], tw['justify-between'], tw['items-center'], tw.py(2))}>
+                  <View style={cn(tw['flex-row'], tw['items-center'])}>
+                    <View 
+                      style={cn(
+                        tw.w(2),
+                        tw.h(2),
+                        tw['rounded-full'],
+                        tw.mr(2),
+                        { backgroundColor: getCategoryColor(category) }
+                      )}
+                    />
+                    <Text style={cn(tw['text-white'], tw['text-base'])}>{category}</Text>
+                  </View>
+                  <Text style={cn(tw['text-primary-500'], tw['text-base'], tw['font-bold'])}>{count}</Text>
                 </View>
-                <Text style={cn(tw['text-primary-500'], tw['text-sm'], tw['font-bold'])}>{count}</Text>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         </View>
 
-        <View style={tw.mb(6)}>
-          <Text style={cn(tw['text-white'], tw['text-xl'], tw['font-bold'], tw.mb(4))}>
-            Upcoming Recalls
+        <View style={tw.mb(8)}>
+          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+            UPCOMING RECALLS
           </Text>
           {upcomingRecalls.length === 0 ? (
-            <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(6), tw['items-center'], tw.border, tw['border-dark-700'])}>
+            <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(6), tw['items-center'], tw.border, tw['border-dark-800'])}>
               <Text style={cn(tw['text-dark-400'], tw['text-base'], tw['text-center'], tw.mb(2))}>
                 No recalls scheduled for the next 7 days
               </Text>
@@ -146,18 +153,18 @@ export default function DashboardScreen() {
             </View>
           ) : (
             upcomingRecalls.map((recall, index) => (
-              <TouchableOpacity key={index} style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4), tw.mb(2), tw['flex-row'], tw['justify-between'], tw['items-center'], tw.border, tw['border-dark-700'])}>
+              <TouchableOpacity key={index} style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.mb(3), tw['flex-row'], tw['justify-between'], tw['items-center'], tw.border, tw['border-dark-800'])}>
                 <View style={tw.flex}>
-                  <Text style={cn(tw['text-white'], tw['text-base'], tw['font-bold'], tw.mb(1))}>
+                  <Text style={cn(tw['text-white'], tw['text-base'], tw['font-bold'], tw.mb(2))}>
                     Problem Recall
                   </Text>
                   <Text style={cn(tw['text-dark-400'], tw['text-sm'])}>
                     Due: {new Date(recall.dueAt).toLocaleDateString()}
                   </Text>
                 </View>
-                <View style={cn(tw['bg-warning'], tw['rounded-lg'], tw.px(2), tw.py(1))}>
-                  <Text style={cn(tw['text-white'], tw['text-xs'], tw['font-bold'])}>
-                    Pending
+                <View style={cn(tw['bg-warning'], tw['rounded-full'], tw.px(3), tw.py(1))}>
+                  <Text style={cn(tw['text-white'], tw['text-xs'], tw['font-semibold'])}>
+                    PENDING
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -165,11 +172,11 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        <View style={tw.mb(6)}>
-          <Text style={cn(tw['text-white'], tw['text-xl'], tw['font-bold'], tw.mb(4))}>
-            Your Plan
+        <View style={tw.mb(8)}>
+          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+            YOUR PLAN
           </Text>
-          <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4), tw.border, tw['border-dark-700'])}>
+          <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}>
             <Text style={cn(tw['text-primary-500'], tw['text-base'], tw['font-bold'], tw.mb(2))}>
               {user?.plan === 'baseline' ? 'Baseline Plan' : 'Time Crunch Plan'}
             </Text>
@@ -182,12 +189,12 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <View style={tw.mb(6)}>
-          <Text style={cn(tw['text-white'], tw['text-xl'], tw['font-bold'], tw.mb(4))}>
-            Motivation
+        <View style={tw.mb(8)}>
+          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+            MOTIVATION
           </Text>
-          <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4), tw.border, tw['border-dark-700'])}>
-            <Text style={cn(tw['text-dark-400'], tw['text-sm'], { fontStyle: 'italic' }, tw['text-center'], tw['leading-normal'])}>
+          <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}>
+            <Text style={cn(tw['text-dark-400'], tw['text-sm'], { fontStyle: 'italic' }, tw['text-center'], tw['leading-relaxed'])}>
               "Consistency is the key to mastery. Every problem you recall strengthens your algorithmic thinking!"
             </Text>
           </View>

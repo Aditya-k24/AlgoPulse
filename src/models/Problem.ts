@@ -48,6 +48,7 @@ export interface ProblemFilter {
 export interface ProblemGenerationRequest {
   category?: string;
   difficulty?: Difficulty;
+  languages?: string[];
   user_level?: 'beginner' | 'intermediate' | 'advanced';
   specific_topic?: string;
 }

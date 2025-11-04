@@ -51,7 +51,7 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Problems' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Progress' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Tab.Navigator>

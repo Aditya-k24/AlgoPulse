@@ -22,7 +22,7 @@ Return strict JSON matching this schema:
   "sample_input": string,
   "sample_output": string,
   "constraints": string,
-  "solutions": { "python": string, "java": string, "cpp": string },
+  "solutions": { "python": string, "java": string, "cpp": string, "javascript": string },
   "methods": string[]
 }`;
 
@@ -39,8 +39,7 @@ Return strict JSON matching this schema:
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: JSON.stringify({
             category: 'Array',
-            difficulty: 'Easy',
-            languages: ['python', 'java', 'cpp']
+            difficulty: 'Easy'
           }) },
         ],
         response_format: { type: 'json_object' },

@@ -128,8 +128,9 @@ export class ProblemController {
   async generateNewProblem(request?: ProblemGenerationRequest): Promise<Problem> {
     try {
       // Use real OpenAI integration via Supabase Edge Function
-      const category = request?.category || 'Array';
-      const difficulty = request?.difficulty || 'Medium';
+      // If category or difficulty is not provided, generate random
+      const category = request?.category;
+      const difficulty = request?.difficulty;
       const languages = request?.languages || ['python', 'java', 'cpp'];
       
       const newProblem = await ProblemService.generateProblem(category, difficulty, languages);
