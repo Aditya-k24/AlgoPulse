@@ -1,6 +1,13 @@
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 export type Language = 'python' | 'java' | 'cpp' | 'javascript';
 
+export interface TestCase {
+  id: string;
+  input: string;
+  expectedOutput: string;
+  isVisible: boolean;
+}
+
 export interface Problem {
   id: string;
   title: string;
@@ -12,6 +19,7 @@ export interface Problem {
   constraints: string;
   solutions: Record<Language, string>;
   methods: string[];
+  test_cases?: TestCase[];
   created_at: string;
   updated_at?: string;
 }

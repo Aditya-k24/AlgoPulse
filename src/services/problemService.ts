@@ -34,14 +34,35 @@ export class ProblemService {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to generate problem: ${error}`);
+      let errorMessage = 'Failed to generate problem';
+      try {
+        const errorText = await response.text();
+        if (errorText) {
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.error || errorJson.message || errorText;
+          } catch {
+            errorMessage = errorText || `HTTP ${response.status}`;
+          }
+        } else {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      } catch {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     
+    if (!data || !data.problem) {
+      console.error('Response missing problem:', data);
+      throw new Error('Invalid response: missing problem data');
+    }
+    
     if (!validateProblemPayload(data.problem)) {
-      throw new Error('Invalid problem payload received');
+      console.error('Validation failed for payload:', JSON.stringify(data.problem, null, 2));
+      throw new Error('Invalid problem payload received. Check console for details.');
     }
 
     const payload: ProblemPayload = data.problem;
@@ -58,13 +79,31 @@ export class ProblemService {
       if (fetched) return fetched;
     }
     
+    // Add IDs to test cases
+    const testCasesWithIds = payload.test_cases?.map((tc, index) => ({
+      ...tc,
+      id: `test-${index + 1}`,
+    })) || [];
+
+    // Ensure methods are max 3 words each
+    const trimMethods = (methods: string[]): string[] => {
+      return methods.map(method => {
+        const words = method.trim().split(/\s+/);
+        return words.slice(0, 3).join(' ');
+      });
+    };
+
+    const trimmedMethods = payload.methods ? trimMethods(payload.methods) : [];
+    
     const { data: savedProblem, error } = await supabase
       .from('problems')
       .insert({
         ...payload,
+        methods: trimmedMethods,
         sample_input: payload.sample_input || '',
         sample_output: payload.sample_output || '',
         constraints: payload.constraints || '',
+        test_cases: testCasesWithIds.length > 0 ? testCasesWithIds : undefined,
       })
       .select()
       .single();

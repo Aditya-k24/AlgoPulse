@@ -176,8 +176,19 @@ export class ProblemController {
     }
   }
 
-  getCategories(): string[] {
-    const categories = [...new Set(this.problems.map(problem => problem.category))];
+  async getCategories(): Promise<string[]> {
+    try {
+      // Fetch all categories from database to ensure we get all categories including new ones
+      const dbCategories = await ProblemService.getCategories();
+      if (dbCategories && Array.isArray(dbCategories) && dbCategories.length > 0) {
+        return ['All', ...dbCategories.sort()];
+      }
+    } catch (error) {
+      console.warn('Failed to fetch categories from database, using local cache:', error);
+    }
+    
+    // Fallback to local cache
+    const categories = [...new Set(this.problems.map(problem => problem.category).filter(Boolean))];
     return ['All', ...categories.sort()];
   }
 

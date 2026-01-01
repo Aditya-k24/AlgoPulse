@@ -104,13 +104,13 @@ export default function SettingsScreen() {
     <View style={cn(tw.flex, tw['bg-dark-950'])}>
       <ScrollView style={cn(tw.flex, tw.px(6))} showsVerticalScrollIndicator={false}>
         <View style={tw.py(6)}>
-          <Text style={cn(tw['text-white'], tw['text-3xl'], tw['font-bold'], tw.mb(1))}>
-            Settings
-          </Text>
-          <Text style={cn(tw['text-dark-400'], tw['text-base'])}>
-            Customize your AlgoPulse experience
-          </Text>
-        </View>
+        <Text style={cn(tw['text-white'], tw['text-3xl'], tw['font-bold'], tw.mb(1))}>
+          Settings
+        </Text>
+        <Text style={cn(tw['text-dark-400'], tw['text-base'])}>
+          Customize your AlgoPulse experience
+        </Text>
+      </View>
 
         {/* User Info */}
         <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.mb(8), tw.border, tw['border-dark-800'])}>
@@ -123,7 +123,7 @@ export default function SettingsScreen() {
           <View style={cn(tw['bg-dark-800'], tw['rounded-full'], tw['self-start'], tw.px(3), tw.py(1))}>
             <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-medium'])}>
               {user?.plan === 'baseline' ? 'Baseline' : 'Time Crunch'}
-            </Text>
+          </Text>
           </View>
         </View>
 

@@ -7,11 +7,12 @@ import {
   Alert,
 } from 'react-native';
 import CodeEditor from '../components/CodeEditor';
-import { Problem, Language } from '../models/Problem';
+import { Problem, Language, TestCase } from '../models/Problem';
 import { useAuth } from '../contexts/AuthContext';
 import { tw, cn } from '../styles/tailwind';
 import { ExecutionService } from '../services/executionService';
 import { RecallService } from '../services/recallService';
+import { getBoilerplateTemplate, extractSolutionFunction, getMainExecutionCode } from '../utils/codeTemplates';
 
 interface Props {
   route: {
@@ -20,16 +21,6 @@ interface Props {
     };
   };
   navigation: any;
-}
-
-interface TestCase {
-  id: string;
-  input: string;
-  expectedOutput: string;
-  isVisible: boolean;
-  passed?: boolean;
-  actualOutput?: string;
-  error?: string;
 }
 
 export default function ProblemDetailScreen({ route, navigation }: Props) {
@@ -47,11 +38,19 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
 
   const languages: Language[] = ['python', 'java', 'cpp'];
 
-  // Generate test cases from problem
+  // Generate test cases from problem (fallback if not stored)
   const generateTestCases = (): TestCase[] => {
+    // If problem has stored test cases, use them
+    if (problem.test_cases && problem.test_cases.length > 0) {
+      return problem.test_cases.map((tc, index) => ({
+        ...tc,
+        id: tc.id || `test-${index + 1}`,
+      }));
+    }
+
+    // Otherwise, generate from sample input/output (fallback)
     const cases: TestCase[] = [];
     
-    // Visible test case 1: Sample input/output
     if (problem.sample_input && problem.sample_output) {
       cases.push({
         id: 'test-1',
@@ -61,9 +60,7 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
       });
     }
 
-    // Visible test case 2 & 3: Generate variations
     if (problem.sample_input) {
-      // Test case 2: Edge case (small input)
       cases.push({
         id: 'test-2',
         input: problem.sample_input.split('\n').map(line => {
@@ -77,17 +74,13 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
         isVisible: true,
       });
 
-      // Test case 3: Different input format
       cases.push({
         id: 'test-3',
         input: problem.sample_input.split('\n').slice(0, 2).join('\n') || problem.sample_input,
         expectedOutput: problem.sample_output?.split('\n').slice(0, 1).join('\n') || problem.sample_output || 'Expected output',
         isVisible: true,
       });
-    }
 
-    // Hidden test case 1 & 2
-    if (problem.sample_input) {
       cases.push({
         id: 'test-hidden-1',
         input: problem.sample_input,
@@ -136,7 +129,98 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
   };
 
   const getCodeTemplate = (lang: Language) => {
-    return problem.solutions[lang] || '';
+    const solution = problem.solutions[lang];
+    
+    if (!solution || !solution.trim()) {
+      // No solution exists, return minimal skeleton
+      return getBoilerplateTemplate(lang, problem.sample_input);
+    }
+    
+    // Extract only the solve function (remove main execution code)
+    return extractSolutionFunction(lang, solution) || getBoilerplateTemplate(lang, problem.sample_input);
+  };
+
+  const combineCodeWithMain = (solveCode: string, lang: Language): string => {
+    switch (lang) {
+      case 'python':
+        // Check if main already exists
+        if (solveCode.includes('if __name__')) {
+          return solveCode;
+        }
+        // Check if solve function exists
+        if (solveCode.includes('def solve(')) {
+          return `${solveCode}\n\n${getMainExecutionCode(lang)}`;
+        }
+        // Wrap in solve function if it's just code
+        return `def solve(input_data):\n    ${solveCode.split('\n').join('\n    ')}\n    return ""\n\n${getMainExecutionCode(lang)}`;
+      
+      case 'java':
+        // Check if main already exists
+        if (solveCode.includes('public static void main')) {
+          return solveCode;
+        }
+        // Check if class exists
+        if (solveCode.includes('public class Solution')) {
+          // Check if solve method exists
+          if (solveCode.includes('public static String solve(')) {
+            // Insert main method before the closing brace
+            const lastBrace = solveCode.lastIndexOf('}');
+            const beforeLastBrace = solveCode.substring(0, lastBrace);
+            // Make sure Scanner is imported
+            const hasScannerImport = solveCode.includes('import java.util.Scanner') || solveCode.includes('import java.util.*');
+            const mainCode = getMainExecutionCode(lang);
+            if (hasScannerImport) {
+              return `${beforeLastBrace}\n    \n    ${mainCode}\n}`;
+            } else {
+              // Add Scanner import at the beginning
+              const importIndex = solveCode.indexOf('import');
+              if (importIndex === -1) {
+                // No imports, add at the beginning
+                const classIndex = solveCode.indexOf('public class');
+                const beforeClass = solveCode.substring(0, classIndex);
+                const afterClass = solveCode.substring(classIndex);
+                const lastBrace2 = afterClass.lastIndexOf('}');
+                return `${beforeClass}import java.util.Scanner;\n\n${afterClass.substring(0, lastBrace2)}\n    \n    ${mainCode}\n}`;
+              } else {
+                // Add after existing imports
+                const firstBrace = solveCode.indexOf('{');
+                const imports = solveCode.substring(0, firstBrace);
+                const classBody = solveCode.substring(firstBrace);
+                const lastBrace2 = classBody.lastIndexOf('}');
+                return `${imports}import java.util.Scanner;\n${classBody.substring(0, lastBrace2)}\n    \n    ${mainCode}\n}`;
+              }
+            }
+          } else {
+            // Add solve method and main
+            const lastBrace = solveCode.lastIndexOf('}');
+            const mainCode = getMainExecutionCode(lang);
+            return solveCode.substring(0, lastBrace) + `\n    public static String solve(String inputData) {\n        // TODO: Implement\n        return "";\n    }\n    \n    ${mainCode}\n}`;
+          }
+        }
+        // No class, create full structure
+        const mainCode = getMainExecutionCode(lang);
+        return `import java.util.Scanner;\n\npublic class Solution {\n    public static String solve(String inputData) {\n        // TODO: Implement\n        return "";\n    }\n    \n    ${mainCode}\n}`;
+      
+      case 'cpp':
+        // Check if main already exists
+        if (solveCode.includes('int main(') || solveCode.includes('void main(')) {
+          return solveCode;
+        }
+        // Check if includes exist
+        const hasIncludes = solveCode.includes('#include');
+        const hasSolveFunction = solveCode.includes('string solve(');
+        const includes = hasIncludes ? '' : '#include <iostream>\n#include <string>\n#include <sstream>\n#include <vector>\n#include <algorithm>\nusing namespace std;\n\n';
+        
+        if (hasSolveFunction) {
+          return `${includes}${solveCode}\n\n${getMainExecutionCode(lang)}`;
+        } else {
+          // Add solve function
+          return `${includes}string solve(string input) {\n    // TODO: Implement\n    return "";\n}\n\n${getMainExecutionCode(lang)}`;
+        }
+      
+      default:
+        return solveCode;
+    }
   };
 
   const runCode = async () => {
@@ -148,10 +232,33 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
     setLoading(true);
     setShowOutput(true);
     try {
-      const result = await ExecutionService.runCode(code, selectedLanguage);
-      setOutput(result.output || '(No output)');
+      // Combine solve function with main execution code
+      const fullCode = combineCodeWithMain(code, selectedLanguage);
+      console.log('[RunCode] Combined code:', fullCode.substring(0, 200) + '...');
+      
+      // Use sample input if available, otherwise run without input
+      const input = problem.sample_input || '';
+      console.log('[RunCode] Input:', input);
+      
+      const result = await ExecutionService.executeCode(fullCode, selectedLanguage, input);
+      console.log('[RunCode] Result:', result);
+      
+      if (result.error) {
+        setOutput(`❌ Error: ${result.error}\n\nOutput: ${result.output || '(No output)'}`);
+      } else {
+        const expectedOutput = problem.sample_output || '';
+        const outputText = result.output || '(No output)';
+        const actualOutput = outputText.trim();
+        const expectedOutputTrimmed = expectedOutput.trim();
+        const matches = expectedOutput && actualOutput === expectedOutputTrimmed;
+        
+        setOutput(
+          `📤 Your Output:\n${outputText}\n\n${expectedOutput ? `✅ Expected Output:\n${expectedOutput}\n\n${matches ? '✓✓✓ Perfect Match! ✓✓✓' : '✗ Output does not match expected'}` : 'ℹ️ No expected output to compare'}`
+        );
+      }
     } catch (error: any) {
-      setOutput(`Error: ${error.message}`);
+      console.error('[RunCode] Error:', error);
+      setOutput(`❌ Execution Error: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -164,13 +271,23 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
     }
 
     setRunningTests(true);
+    setShowOutput(true);
     const results: Record<string, { passed: boolean; output?: string; error?: string }> = {};
     let allPassed = true;
+    let testOutput = '🧪 Running Tests...\n\n';
 
-    for (const testCase of testCases) {
+    for (let i = 0; i < testCases.length; i++) {
+      const testCase = testCases[i];
+      const isVisible = testCase.isVisible;
+      const testLabel = isVisible ? `Test ${i + 1}` : `Hidden Test ${i + 1}`;
+      
       try {
+        // Combine solve function with main execution code
+        const fullCode = combineCodeWithMain(code, selectedLanguage);
+        console.log(`[RunAllTests] Running ${testLabel}, input:`, testCase.input);
+        
         const result = await ExecutionService.executeCode(
-          code,
+          fullCode,
           selectedLanguage,
           testCase.input,
           testCase.expectedOutput
@@ -183,18 +300,37 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
           error: result.error,
         };
 
+        if (isVisible) {
+          testOutput += `${passed ? '✅' : '❌'} ${testLabel}: ${passed ? 'PASSED' : 'FAILED'}\n`;
+          if (!passed) {
+            testOutput += `   Input: ${testCase.input.substring(0, 50)}${testCase.input.length > 50 ? '...' : ''}\n`;
+            testOutput += `   Your Output: ${result.output?.substring(0, 50) || '(no output)'}${result.output && result.output.length > 50 ? '...' : ''}\n`;
+            testOutput += `   Expected: ${testCase.expectedOutput.substring(0, 50)}${testCase.expectedOutput.length > 50 ? '...' : ''}\n`;
+            if (result.error) {
+              testOutput += `   Error: ${result.error}\n`;
+            }
+          }
+        } else {
+          // For hidden tests, just show pass/fail
+          testOutput += `${passed ? '✅' : '❌'} ${testLabel}: ${passed ? 'PASSED' : 'FAILED'}\n`;
+        }
+
         if (!passed) {
           allPassed = false;
         }
       } catch (error: any) {
+        console.error(`[RunAllTests] Error in ${testLabel}:`, error);
         results[testCase.id] = {
           passed: false,
           error: error.message,
         };
+        testOutput += `❌ ${testLabel}: ERROR - ${error.message}\n`;
         allPassed = false;
       }
     }
 
+    testOutput += `\n${allPassed ? '🎉 All tests passed!' : '⚠️ Some tests failed. Please fix your solution.'}`;
+    setOutput(testOutput);
     setTestResults(results);
     setRunningTests(false);
     return allPassed;
@@ -224,10 +360,11 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
         return;
       }
 
-      // All tests passed, submit the solution
+      // All tests passed, submit the solution (combine with main for submission)
+      const fullCode = combineCodeWithMain(code, selectedLanguage);
       const response = await ExecutionService.submitSolution(
         problem.id,
-        code,
+        fullCode,
         selectedLanguage,
         problem.sample_input,
         problem.sample_output
@@ -466,85 +603,29 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
           </View>
         )}
 
-        {/* Language Selection */}
-        <View style={tw.mb(8)}>
-          <Text style={cn(tw['text-dark-400'], tw['text-xs'], tw['font-semibold'], tw.mb(4))}>
-            LANGUAGE
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {languages.map((lang) => (
-              <TouchableOpacity
-                key={lang}
-                style={cn(
-                  tw['rounded-xl'],
-                  tw.px(6),
-                  tw.py(3),
-                  tw.mr(3),
-                  tw.border,
-                  selectedLanguage === lang
-                    ? cn(tw['border-primary-500'], tw['bg-primary-500/10'])
-                    : cn(tw['border-dark-700'], tw['bg-dark-900'])
-                )}
-                onPress={() => {
-                  setSelectedLanguage(lang);
-                  setCode(getCodeTemplate(lang));
-                }}
-              >
-                <Text style={cn(
-                  tw['text-base'],
-                  tw['font-semibold'],
-                  selectedLanguage === lang ? tw['text-primary-500'] : tw['text-dark-400']
-                )}>
-                  {getLanguageDisplayName(lang)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Code Editor Button */}
-        <View style={tw.mb(8)}>
-          <TouchableOpacity
-            style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}
-            onPress={() => setShowEditor(true)}
-          >
-            <Text style={cn(tw['text-primary-500'], tw['text-base'], tw['font-bold'], tw.mb(1))}>
-              Open Code Editor
-            </Text>
-            <Text style={cn(tw['text-dark-400'], tw['text-sm'])}>
-              {getLanguageDisplayName(selectedLanguage)}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Action Buttons */}
-        <View style={cn(tw['flex-row'], tw.mb(8))}>
+        <View style={tw.mb(8)}>
           <TouchableOpacity
             style={cn(
-              tw.flex,
-              tw['rounded-xl'],
-              tw.px(6),
-              tw.py(4),
-              tw.mr(2),
+              tw['bg-dark-900'],
+              tw['rounded-2xl'],
+              tw.p(5),
               tw.border,
-              tw['border-dark-700'],
-              tw['bg-dark-900']
+              tw['border-dark-800'],
+              tw.mb(4)
             )}
-            onPress={runCode}
-            disabled={loading}
+            onPress={() => setShowEditor(true)}
           >
-            <Text style={cn(tw['text-white'], tw['text-base'], tw['font-semibold'], tw['text-center'])}>
-              {loading ? 'Running...' : 'Run'}
+            <Text style={cn(tw['text-primary-500'], tw['text-base'], tw['font-bold'], tw['text-center'])}>
+              Open Code Editor
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity
             style={cn(
-              tw.flex,
               tw['rounded-xl'],
               tw.px(6),
               tw.py(4),
-              tw.ml(2),
               tw['border'],
               tw['border-primary-500'],
               tw['bg-primary-500']
@@ -557,20 +638,6 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Output */}
-        {output && (
-          <View style={tw.mb(8)}>
-            <Text style={cn(tw['text-dark-400'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
-              OUTPUT
-            </Text>
-            <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}>
-              <Text style={cn(tw['text-white'], tw['text-base'], { fontFamily: 'monospace' })}>
-                {output}
-              </Text>
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       {/* Code Editor */}
@@ -584,12 +651,17 @@ export default function ProblemDetailScreen({ route, navigation }: Props) {
         showOutput={showOutput}
         loading={loading}
         runningTests={runningTests}
+        mainExecutionCode={getMainExecutionCode(selectedLanguage)}
         onClose={() => setShowEditor(false)}
         onCodeChange={setCode}
+        onLanguageChange={(lang) => {
+          setSelectedLanguage(lang);
+          setCode(getCodeTemplate(lang));
+        }}
         onRun={runCode}
         onRunTests={runAllTests}
         onSubmit={submitSolution}
-        onToggleOutput={() => setShowOutput(false)}
+        onToggleOutput={() => setShowOutput(!showOutput)}
       />
     </View>
   );

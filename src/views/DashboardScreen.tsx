@@ -72,13 +72,13 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={tw.py(6)}>
-          <Text style={cn(tw['text-white'], tw['text-3xl'], tw['font-bold'], tw.mb(1))}>
-            Your Progress
-          </Text>
-          <Text style={cn(tw['text-dark-400'], tw['text-base'])}>
-            Keep your DSA heartbeat strong
-          </Text>
-        </View>
+        <Text style={cn(tw['text-white'], tw['text-3xl'], tw['font-bold'], tw.mb(1))}>
+          Your Progress
+        </Text>
+        <Text style={cn(tw['text-dark-400'], tw['text-base'])}>
+          Keep your DSA heartbeat strong
+        </Text>
+      </View>
 
         <View style={cn(tw['flex-row'], tw['justify-between'], tw.mb(8), tw.gap(3))}>
           <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw['items-center'], tw.flex, tw.border, tw['border-dark-800'])}>
@@ -118,17 +118,17 @@ export default function DashboardScreen() {
               </Text>
             ) : (
               Object.entries(stats.categoryStats).map(([category, count]) => (
-                <View key={category} style={cn(tw['flex-row'], tw['justify-between'], tw['items-center'], tw.py(2))}>
-                  <View style={cn(tw['flex-row'], tw['items-center'])}>
-                    <View 
-                      style={cn(
-                        tw.w(2),
-                        tw.h(2),
-                        tw['rounded-full'],
-                        tw.mr(2),
-                        { backgroundColor: getCategoryColor(category) }
-                      )}
-                    />
+              <View key={category} style={cn(tw['flex-row'], tw['justify-between'], tw['items-center'], tw.py(2))}>
+                <View style={cn(tw['flex-row'], tw['items-center'])}>
+                  <View 
+                    style={cn(
+                      tw.w(2),
+                      tw.h(2),
+                      tw['rounded-full'],
+                      tw.mr(2),
+                      { backgroundColor: getCategoryColor(category) }
+                    )}
+                  />
                     <Text style={cn(tw['text-white'], tw['text-base'])}>{category}</Text>
                   </View>
                   <Text style={cn(tw['text-primary-500'], tw['text-base'], tw['font-bold'])}>{count}</Text>

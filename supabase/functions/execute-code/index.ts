@@ -13,20 +13,45 @@ async function runViaJDoodle(req: ExecuteRequest, clientId: string, clientSecret
     cpp: { language: "cpp17", versionIndex: "0" },
   };
   const cfg = map[req.language];
-  const resp = await fetch("https://api.jdoodle.com/v1/execute", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      clientId: clientId,
-      clientSecret: clientSecret,
-      script: req.code,
-      stdin: req.stdin ?? "",
-      language: cfg.language,
-      versionIndex: cfg.versionIndex,
-    }),
-  });
-  if (!resp.ok) throw new Error(`JDoodle error: ${resp.status}`);
-  return await resp.json();
+  
+  if (!cfg) {
+    throw new Error(`Unsupported language: ${req.language}`);
+  }
+  
+  try {
+    const resp = await fetch("https://api.jdoodle.com/v1/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: clientId,
+        clientSecret: clientSecret,
+        script: req.code,
+        stdin: req.stdin ?? "",
+        language: cfg.language,
+        versionIndex: cfg.versionIndex,
+      }),
+    });
+    
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.error('JDoodle API error:', resp.status, errorText);
+      throw new Error(`JDoodle API error: ${resp.status} - ${errorText}`);
+    }
+    
+    const result = await resp.json();
+    
+    // JDoodle returns: { output, statusCode, memory, cpuTime, error? }
+    // Normalize the response
+    return {
+      output: result.output || '',
+      error: result.error || (result.statusCode !== 200 ? `Execution failed with status ${result.statusCode}` : undefined),
+      cpuTime: result.cpuTime,
+      memory: result.memory,
+    };
+  } catch (error: any) {
+    console.error('JDoodle execution error:', error);
+    throw error;
+  }
 }
 
 serve(async (req) => {

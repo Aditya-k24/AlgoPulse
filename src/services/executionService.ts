@@ -40,21 +40,40 @@ export class ExecutionService {
       );
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Execution failed: ${error}`);
+        let errorMessage = `Execution failed: HTTP ${response.status}`;
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.error || errorJson.message || errorText;
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
+          }
+        } catch {
+          errorMessage = `Execution failed: HTTP ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      console.log('[ExecutionService] Raw result:', result);
       
       // Determine verdict
       let verdict: 'pass' | 'fail' | 'error' = 'fail';
       
       if (result.error) {
         verdict = 'error';
-      } else if (expectedOutput && result.output?.trim() === expectedOutput.trim()) {
-        verdict = 'pass';
-      } else if (!expectedOutput && result.output) {
-        verdict = 'fail'; // No expected output to compare
+      } else if (expectedOutput) {
+        // Compare outputs (normalize whitespace and line endings)
+        const actual = (result.output || '').trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '');
+        const expected = expectedOutput.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '');
+        verdict = actual === expected ? 'pass' : 'fail';
+        console.log('[ExecutionService] Comparison:', { actual, expected, verdict });
+      } else if (result.output) {
+        // No expected output to compare, but we got output (not an error)
+        verdict = 'fail';
       }
 
       return {

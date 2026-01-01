@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Alert,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ProblemController } from '../controllers/ProblemController';
@@ -25,16 +26,34 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
+  const [generating, setGenerating] = useState(false);
+  const [categories, setCategories] = useState<string[]>(['All']);
   
   // Animations
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(30))[0];
 
-  const categories = problemController.getCategories();
   const difficulties = problemController.getDifficulties();
 
   useEffect(() => {
-    fetchProblems();
+    const initialize = async () => {
+      try {
+        // Load categories on initial mount
+        const initialCategories = await problemController.getCategories();
+        if (initialCategories && Array.isArray(initialCategories)) {
+          setCategories(initialCategories);
+        }
+        
+        // Fetch problems
+        await fetchProblems();
+      } catch (error) {
+        console.error('Error initializing:', error);
+        // Ensure categories is always an array
+        setCategories(['All']);
+      }
+    };
+    
+    initialize();
     
     // Entrance animations
     Animated.parallel([
@@ -69,6 +88,16 @@ export default function HomeScreen() {
       
       const fetchedProblems = await problemController.fetchProblems(filter);
       setProblems(fetchedProblems);
+      
+      // Update categories list from database (including newly generated ones)
+      try {
+        const allCategories = await problemController.getCategories();
+        if (allCategories && Array.isArray(allCategories)) {
+          setCategories(allCategories);
+        }
+      } catch (error) {
+        console.error('Error updating categories:', error);
+      }
     } catch (error) {
       console.error('Error fetching problems:', error);
     } finally {
@@ -85,6 +114,10 @@ export default function HomeScreen() {
   const generateScale = useState(new Animated.Value(1))[0];
 
   const generateNewProblem = async () => {
+    if (generating) return; // Prevent multiple clicks
+    
+    setGenerating(true);
+    
     try {
       const category = selectedCategory !== 'All' ? selectedCategory : undefined;
       const difficulty = selectedDifficulty !== 'All' ? selectedDifficulty as Difficulty : undefined;
@@ -95,6 +128,17 @@ export default function HomeScreen() {
       };
       
       const newProblem = await problemController.generateNewProblem(request);
+      
+      // Update categories to include the new problem's category
+      try {
+        const updatedCategories = await problemController.getCategories();
+        if (updatedCategories && Array.isArray(updatedCategories)) {
+          setCategories(updatedCategories);
+        }
+      } catch (error) {
+        console.error('Error updating categories after generation:', error);
+      }
+      
       await fetchProblems();
       (navigation as any).navigate('ProblemDetail', { problem: newProblem });
     } catch (error: any) {
@@ -103,6 +147,8 @@ export default function HomeScreen() {
         error.message || 'Failed to generate new problem. Please check your connection and try again.',
         [{ text: 'OK' }]
       );
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -161,7 +207,7 @@ export default function HomeScreen() {
             FILTER BY CATEGORY
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw.mb(4)}>
-            {categories.map((category) => (
+            {(categories || ['All']).map((category) => (
               <TouchableOpacity
                 key={category}
                 style={cn(
@@ -229,30 +275,45 @@ export default function HomeScreen() {
               tw.mb(6),
               tw.border,
               tw['border-primary-500'],
-              tw['shadow-lg']
+              tw['shadow-lg'],
+              generating && tw['opacity-70']
             )}
             onPress={generateNewProblem}
+            disabled={generating}
             onPressIn={() => {
-              Animated.spring(generateScale, {
-                toValue: 0.96,
-                useNativeDriver: true,
-                speed: 20,
-                bounciness: 6,
-              }).start();
+              if (!generating) {
+                Animated.spring(generateScale, {
+                  toValue: 0.96,
+                  useNativeDriver: true,
+                  speed: 20,
+                  bounciness: 6,
+                }).start();
+              }
             }}
             onPressOut={() => {
-              Animated.spring(generateScale, {
-                toValue: 1,
-                useNativeDriver: true,
-                speed: 20,
-                bounciness: 6,
-              }).start();
+              if (!generating) {
+                Animated.spring(generateScale, {
+                  toValue: 1,
+                  useNativeDriver: true,
+                  speed: 20,
+                  bounciness: 6,
+                }).start();
+              }
             }}
-            activeOpacity={0.9}
+            activeOpacity={generating ? 1 : 0.9}
           >
-            <Text style={cn(tw['text-white'], tw['text-base'], tw['font-bold'], tw['text-center'])}>
-              {getGenerateButtonText()}
+            <View style={cn(tw['flex-row'], tw['items-center'], tw['justify-center'])}>
+              {generating && (
+                <ActivityIndicator 
+                  size="small" 
+                  color="#FFFFFF" 
+                  style={{ marginRight: 8 }}
+                />
+              )}
+              <Text style={cn(tw['text-white'], tw['text-base'], tw['font-bold'], tw['text-center'])}>
+                {generating ? 'Generating...' : getGenerateButtonText()}
             </Text>
+            </View>
           </TouchableOpacity>
         </Animated.View>
 
@@ -308,16 +369,16 @@ export default function HomeScreen() {
                   </View>
                   <View style={cn(tw['bg-dark-800'], tw['rounded-full'], tw['self-start'], tw.px(3), tw.py(1), tw.mb(3))}>
                     <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-medium'])}>
-                      {problem.category}
-                    </Text>
+                    {problem.category}
+                  </Text>
                   </View>
                   {problem.methods.length > 0 && (
                     <View style={cn(tw['flex-row'], tw['flex-wrap'])}>
-                      {problem.methods.map((method, idx) => (
+                      {problem.methods.slice(0, 4).map((method, idx) => (
                         <View key={idx} style={cn(tw['bg-primary-500/10'], tw['rounded-full'], tw.px(3), tw.py(1), tw.mr(1), tw.mb(1), tw['border'], tw['border-primary-500/20'])}>
                           <Text style={cn(tw['text-primary-400'], tw['text-xs'], tw['font-medium'])}>
                             {method}
-                          </Text>
+                  </Text>
                         </View>
                       ))}
                     </View>
