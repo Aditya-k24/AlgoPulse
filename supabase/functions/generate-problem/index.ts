@@ -8,79 +8,182 @@ interface GenerateRequest {
   creativeHint?: string;
 }
 
-const SYSTEM_PROMPT = `You are an expert assistant that generates unique, creative DSA problems.
-IMPORTANT: Each problem must be completely different and original. Avoid generating variations of classic problems like "Two Sum", "Valid Parentheses", etc.
-Be creative with problem scenarios, themes, and edge cases.
-If provided with existingTitles in the request, you MUST avoid creating any problem with a similar title or concept.
-If provided with a creativeHint in the request, use it as inspiration to create a truly unique problem.
-If category is specified, create a problem in that category. If not, choose any appropriate category.
-If difficulty is specified, create a problem of that difficulty. If not, choose a difficulty that matches the problem's complexity.
+const SYSTEM_PROMPT = `You are a DSA educator creating retention-focused learning content. Generate comprehensive, detailed content.
 
-CRITICAL REQUIREMENTS FOR SOLUTIONS:
-Each solution MUST be a complete, executable program that can run and produce output:
-- Python: Must include "if __name__ == '__main__':" with main execution code that reads from stdin and prints output
-- Java: Must include "public static void main(String[] args)" that reads from stdin using Scanner and prints output
-- C++: Must include "int main()" that reads from stdin using getline/cin and prints output using cout
-- JavaScript: Must include execution code that processes input and outputs result
-- All solutions should read input from stdin (standard input)
-- All solutions should print output to stdout (standard output)
-- Solutions should parse the input format described in the problem
-- Solutions should handle the sample_input correctly
+CRITICAL: Generate ALL sections completely. Problem statement must be FIRST and DETAILED.
 
-CRITICAL: You MUST generate exactly 5 test cases in the test_cases array:
-  - 3 visible test cases (isVisible: true) that should be shown to users
-  - 2 hidden test cases (isVisible: false) that test edge cases and should not be shown
-  - Test cases should cover different scenarios: basic cases, edge cases, and boundary conditions
-  - Each test case must have valid input and expectedOutput
-  - Hidden test cases should be more challenging or test corner cases
-  - NEVER omit the test_cases field - it must always be present with exactly 5 test cases
+GENERATE IN THIS ORDER:
 
-CRITICAL: You MUST include a "methods" array with at least 1-3 solution approaches:
-  - Each approach name must be maximum 3 words (e.g., "Two Pointers", "Hash Map", "Dynamic Programming", "Binary Search")
-  - Concise and descriptive
-  - Typically 1-3 words per method name
-  - Examples: ["Sliding Window"], ["Hash Map", "Sorting"], ["Dynamic Programming", "Recursion"]
-  - NEVER omit the methods field - it must always be present as an array
+1. PROBLEM STATEMENT (FIRST - Must be detailed):
+- Title: Unique, descriptive problem name
+- Category: One of the standard DSA categories
+- Difficulty: Easy, Medium, or Hard
+- Description: DETAILED problem statement (4-6 sentences). MUST INCLUDE:
+  * Clear problem scenario/context
+  * What input is given (format and example)
+  * What output is expected (format and example)
+  * Example walkthrough with actual input/output values
+  * Edge cases to consider
+- Sample input/output: Clear examples (will be displayed separately)
+- Constraints: Detailed constraints
 
-Return strict JSON matching this schema (ALL FIELDS ARE REQUIRED):
+2. QUICK REFRESH (5-6 bullets, 30 sec read):
+- Pattern name, key idea, when to use, edge cases, complexity
+
+3. APPROACHES (MUST generate 2-3 UNIQUE solution approaches):
+- Brute Force: when_to_use, intuition, 4-5 detailed steps, complexity, pitfalls
+  * MUST use a completely different algorithm/method than optimal (e.g., nested loops vs two pointers, DFS vs BFS, etc.)
+- Optimal: same structure, mark as recommended, MUST use a DIFFERENT algorithm than brute force
+  * Must be a fundamentally different approach (different data structure, different algorithm paradigm)
+- Intermediate (if applicable): Another approach between brute force and optimal with yet another unique method
+
+4. VISUAL BREAKDOWN (Diagrammatic representation):
+- ASCII diagram showing optimal approach step-by-step
+- Use visual elements: arrows (→), pointers (↑), arrays ([1,2,3]), trees, graphs
+- Show 4-6 steps with clear visual progression
+- Make it easy to understand the algorithm flow
+
+5. REFERENCES (2-3 YouTube videos with actual URLs):
+- Format: {type: "video", title: "...", url: "https://www.youtube.com/watch?v=...", author: "NeetCode" or "Abdul Bari" or similar}
+- Must provide real YouTube URLs (you can use common patterns or generate realistic ones)
+- Focus on the specific pattern/algorithm used in the problem
+
+JSON SCHEMA (ALL FIELDS REQUIRED):
 {
-  "title": string,
-  "category": string,
-  "difficulty": "Easy" | "Medium" | "Hard",
-  "description": string,
+  "title": string (unique, descriptive),
+  "category": string (standard DSA category),
+  "difficulty": "Easy"|"Medium"|"Hard",
+  "description": string (4-6 DETAILED sentences - MUST include example input/output walkthrough),
   "sample_input": string,
   "sample_output": string,
-  "constraints": string,
-  "solutions": { 
-    "python": string (REQUIRED - complete executable program with if __name__ == "__main__" block),
-    "java": string (optional - but include empty string "" if not generating),
-    "cpp": string (optional - but include empty string "" if not generating),
-    "javascript": string (optional - but include empty string "" if not generating)
+  "constraints": string (detailed, 1-2 lines),
+  
+  "quick_refresh": [5-6 bullets - REQUIRED],
+  "pattern_name": string (REQUIRED),
+  "approaches": [
+    {
+      "name": string (REQUIRED - must be unique per approach),
+      "type": "brute-force"|"intermediate"|"optimal" (REQUIRED),
+      "when_to_use": string (1-2 sentences - REQUIRED),
+      "core_intuition": string (1-2 sentences - REQUIRED),
+      "steps": [4-5 detailed strings - REQUIRED, must be different for each approach],
+      "time_complexity": string (REQUIRED - e.g., "O(n log n)"),
+      "space_complexity": string (REQUIRED - e.g., "O(1)"),
+      "pitfalls": string (1-2 sentences - REQUIRED for brute-force, optional for optimal)
+    }
+  ] (MUST have 2-3 approaches with DIFFERENT solutions),
+  
+  "visual_breakdown": string (REQUIRED - ASCII diagram, 5-8 lines, diagrammatic),
+  "references": [
+    {
+      "type": "video" (REQUIRED),
+      "title": string (REQUIRED),
+      "url": string (REQUIRED - actual YouTube URL format: https://www.youtube.com/watch?v=...),
+      "author": string (REQUIRED - e.g., "NeetCode", "Abdul Bari", "Back To Back SWE")
+    }
+  ] (MUST have 2-3 videos with URLs),
+  
+  "solutions": {
+    "python": string (REQUIRED - unique solution, executable),
+    "java": string (can be empty for now),
+    "cpp": string (can be empty for now),
+    "javascript": string (can be empty for now)
   },
-  "methods": ["Method 1", "Method 2"] (REQUIRED - array with 1-3 solution approaches, max 3 words each),
-  "test_cases": [
-    { "input": "test input 1", "expectedOutput": "expected output 1", "isVisible": true },
-    { "input": "test input 2", "expectedOutput": "expected output 2", "isVisible": true },
-    { "input": "test input 3", "expectedOutput": "expected output 3", "isVisible": true },
-    { "input": "edge case input", "expectedOutput": "edge case output", "isVisible": false },
-    { "input": "corner case input", "expectedOutput": "corner case output", "isVisible": false }
-  ] (REQUIRED - exactly 5 test cases)
+  "methods": [1-2 strings, max 3 words each - REQUIRED],
+  "test_cases": [5 objects with input, expectedOutput, isVisible - REQUIRED]
 }
 
-EXAMPLE of valid response structure:
+EXAMPLE (COMPLETE):
 {
-  "title": "Find Maximum Sum Subarray",
+  "title": "Find Pair Sum in Sorted Array",
   "category": "Array",
   "difficulty": "Easy",
-  "methods": ["Sliding Window", "Two Pointers"],
+  "description": "Given a sorted array of integers and a target sum, determine if there exists a pair of distinct elements that sum to the target. The array is sorted in non-decreasing order. You need to return true if such a pair exists, false otherwise. For example, with input array [1, 2, 3, 4, 5] and target 7, the output is true because the pair (2, 5) sums to 7. Another example: input array [1, 3, 5, 7] with target 10 returns false since no pair sums to 10. Consider edge cases like empty arrays, arrays with one element, and cases where no valid pair exists.",
+  "sample_input": "5\\n1 2 3 4 5\\n7",
+  "sample_output": "true",
+  "constraints": "2 ≤ n ≤ 10^5, -10^9 ≤ arr[i] ≤ 10^9, -10^9 ≤ target ≤ 10^9",
+  "quick_refresh": [
+    "Pattern: Two Pointers technique for sorted arrays",
+    "Key idea: Use two pointers from opposite ends, move based on sum comparison",
+    "When to use: Sorted arrays, pair/triplet problems, searching problems",
+    "Edge cases: Empty array, single element, no valid pair, negative numbers",
+    "Time complexity: O(n) optimal vs O(n²) brute force",
+    "Space complexity: O(1) for both approaches"
+  ],
+  "pattern_name": "Two Pointers",
+  "approaches": [
+    {
+      "name": "Brute Force - Check All Pairs",
+      "type": "brute-force",
+      "when_to_use": "Use only for very small inputs (n < 100) or when array is not sorted",
+      "core_intuition": "Check every possible pair of elements to see if their sum equals the target",
+      "steps": [
+        "Initialize two nested loops: outer loop i from 0 to n-1, inner loop j from i+1 to n-1",
+        "For each pair (arr[i], arr[j]), calculate sum = arr[i] + arr[j]",
+        "If sum equals target, return true immediately",
+        "If no pair found after checking all combinations, return false"
+      ],
+      "time_complexity": "O(n²)",
+      "space_complexity": "O(1)",
+      "pitfalls": "Time Limit Exceeded (TLE) for large inputs (n > 10,000), inefficient use of sorted property"
+    },
+    {
+      "name": "Two Pointers - Optimal",
+      "type": "optimal",
+      "when_to_use": "Best for sorted arrays, provides O(n) time complexity",
+      "core_intuition": "Use two pointers starting from both ends, move them based on whether current sum is less than, equal to, or greater than target",
+      "steps": [
+        "Initialize left pointer at index 0 and right pointer at index n-1",
+        "While left < right, calculate current_sum = arr[left] + arr[right]",
+        "If current_sum == target, return true (pair found)",
+        "If current_sum < target, increment left pointer (need larger sum)",
+        "If current_sum > target, decrement right pointer (need smaller sum)",
+        "If pointers meet without finding pair, return false"
+      ],
+      "time_complexity": "O(n)",
+      "space_complexity": "O(1)",
+      "pitfalls": "Only works on sorted arrays, requires sorting step if input is unsorted (adds O(n log n) overhead)"
+    }
+  ],
+  "visual_breakdown": "Two Pointers Algorithm Visualization:\\n\\nInitial: [1, 2, 3, 4, 5], target = 7\\n          ↑           ↑\\n         left       right\\n         sum = 1 + 5 = 6 < 7\\n\\nStep 1:  [1, 2, 3, 4, 5]\\n             ↑        ↑\\n            left    right\\n            sum = 2 + 5 = 7 ✓ (FOUND!)\\n\\nAlgorithm Flow:\\n1. Start with pointers at ends\\n2. Compare sum with target\\n3. Move left if sum too small\\n4. Move right if sum too large\\n5. Return true when sum matches",
+  "references": [
+    {
+      "type": "video",
+      "title": "Two Pointers Technique Explained",
+      "url": "https://www.youtube.com/watch?v=-gjxg6Pln50",
+      "author": "NeetCode"
+    },
+    {
+      "type": "video",
+      "title": "Two Sum II - LeetCode Problem",
+      "url": "https://www.youtube.com/watch?v=cQ1Oz4ckceM",
+      "author": "Abdul Bari"
+    }
+  ],
+  "solutions": {
+    "python": "def solve(input_data):\\n    lines = input_data.strip().split('\\\\n')\\n    n = int(lines[0])\\n    arr = list(map(int, lines[1].split()))\\n    target = int(lines[2])\\n    \\n    left, right = 0, n - 1\\n    while left < right:\\n        current_sum = arr[left] + arr[right]\\n        if current_sum == target:\\n            return 'true'\\n        elif current_sum < target:\\n            left += 1\\n        else:\\n            right -= 1\\n    return 'false'\\n\\nif __name__ == '__main__':\\n    import sys\\n    print(solve(sys.stdin.read()))",
+    "java": "",
+    "cpp": "",
+    "javascript": ""
+  },
+  "methods": ["Two Pointers"],
   "test_cases": [
-    { "input": "5\\n1 2 3 4 5", "expectedOutput": "15", "isVisible": true },
-    { "input": "3\\n-1 2 -1", "expectedOutput": "2", "isVisible": true },
-    { "input": "4\\n5 5 5 5", "expectedOutput": "20", "isVisible": true },
-    { "input": "1\\n-10", "expectedOutput": "-10", "isVisible": false },
-    { "input": "6\\n-2 -3 4 -1 -2 1", "expectedOutput": "4", "isVisible": false }
+    {"input": "5\\n1 2 3 4 5\\n7", "expectedOutput": "true", "isVisible": true},
+    {"input": "4\\n1 3 5 7\\n10", "expectedOutput": "false", "isVisible": true},
+    {"input": "3\\n2 4 6\\n6", "expectedOutput": "true", "isVisible": true},
+    {"input": "1\\n5\\n10", "expectedOutput": "false", "isVisible": false},
+    {"input": "6\\n-3 -1 0 2 4 6\\n3", "expectedOutput": "true", "isVisible": false}
   ]
-}`;
+}
+
+CRITICAL REQUIREMENTS:
+- Description MUST be 4-6 detailed sentences, placed FIRST, and MUST include example input/output walkthrough
+- MUST generate 2-3 DIFFERENT solution approaches (brute force + optimal + optional intermediate)
+- Visual breakdown MUST be diagrammatic with arrows, pointers, arrays shown visually
+- References MUST include actual YouTube URLs (use realistic patterns like /watch?v=...)
+- Solutions.python MUST be a complete, executable solution (not empty)
+- Each approach MUST have unique steps and different time/space complexity
+- All fields are REQUIRED - do not skip any section`;
 
 async function callOpenAI(apiKey: string, body: unknown): Promise<any> {
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -96,7 +199,8 @@ async function callOpenAI(apiKey: string, body: unknown): Promise<any> {
         { role: "user", content: JSON.stringify(body) },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.9,
+      temperature: 0.8, // Slightly higher for more creative, unique problems
+      max_tokens: 3000, // Increased to allow detailed descriptions and multiple approaches
     }),
   });
   
@@ -130,80 +234,127 @@ function validatePayload(p: any): boolean {
     return false;
   }
   
-  const hasSolutions = p.solutions && 
-    typeof p.solutions.python === "string" && 
-    typeof p.solutions.java === "string" && 
-    typeof p.solutions.cpp === "string" && 
-    typeof p.solutions.javascript === "string";
+  // ═════════════════════════════════════════════
+  // REVIEW MODE VALIDATIONS (NEW - REQUIRED)
+  // ═════════════════════════════════════════════
   
-  // Test cases are optional - if missing, we'll generate them later
-  // If present, they should be valid, but we'll be lenient
-  let hasValidTestCases = true;
-  if (p.test_cases !== undefined && p.test_cases !== null) {
-    const testCasesArray = Array.isArray(p.test_cases);
-    if (testCasesArray && p.test_cases.length > 0) {
-      // At least check that they have the right structure
-      const allValid = p.test_cases.every((tc: any) => 
-        typeof tc === "object" &&
-        typeof tc.input === "string" &&
-        typeof tc.expectedOutput === "string" &&
-        (tc.isVisible === true || tc.isVisible === false)
-      );
-      hasValidTestCases = allValid;
-      
-      if (!hasValidTestCases) {
-        console.error('Test cases validation failed:', {
-          isArray: testCasesArray,
-          count: p.test_cases?.length,
-          firstCase: p.test_cases?.[0],
-        });
-      }
-    } else if (testCasesArray && p.test_cases.length === 0) {
-      // Empty array is okay - we'll generate test cases
-      hasValidTestCases = true;
-    }
-  }
-  // If test_cases is missing entirely, that's also okay
+  // 1. Quick Refresh (5-6 bullets - optimized for conciseness)
+  const hasQuickRefresh = Array.isArray(p.quick_refresh) && 
+    p.quick_refresh.length >= 4 && 
+    p.quick_refresh.length <= 6 &&
+    p.quick_refresh.every((b: any) => typeof b === "string" && b.trim().length > 0);
   
-  // Methods should be an array, but allow empty array (we can add defaults)
-  const hasMethods = Array.isArray(p.methods);
+  // 2. Pattern Name
+  const hasPatternName = typeof p.pattern_name === "string" && p.pattern_name.trim().length > 0;
   
-  // Make solutions more lenient - check if they exist and are strings (non-empty)
-  // Currently only Python is required (Java, C++, JS coming later)
-  const hasValidSolutions = hasSolutions && 
-    p.solutions.python?.trim();
+  // 3. Approaches (must have 2-3 approaches with unique names and different methods)
+  const hasValidApproaches = Array.isArray(p.approaches) && 
+    p.approaches.length >= 2 && 
+    p.approaches.length <= 3 &&
+    p.approaches.every((a: any) =>
+      typeof a === "object" &&
+      typeof a.name === "string" && a.name.trim().length > 0 &&
+      typeof a.type === "string" && ['brute-force', 'intermediate', 'optimal'].includes(a.type) &&
+      typeof a.when_to_use === "string" && a.when_to_use.trim().length > 0 &&
+      typeof a.core_intuition === "string" && a.core_intuition.trim().length > 0 &&
+      Array.isArray(a.steps) && a.steps.length >= 4 && // At least 4 steps for detailed approach
+      typeof a.time_complexity === "string" && a.time_complexity.trim().length > 0 &&
+      typeof a.space_complexity === "string" && a.space_complexity.trim().length > 0
+    ) &&
+    // Ensure approaches have unique names
+    new Set(p.approaches.map((a: any) => a.name)).size === p.approaches.length &&
+    // Ensure at least one optimal approach exists
+    p.approaches.some((a: any) => a.type === 'optimal');
   
-  const isValid = (
+  // 4. Visual Breakdown (must be diagrammatic - at least 50 chars for proper diagram)
+  const hasVisualBreakdown = typeof p.visual_breakdown === "string" && p.visual_breakdown.trim().length >= 50;
+  
+  // 5. References (2-3 videos with URLs minimum)
+  const hasValidReferences = Array.isArray(p.references) && 
+    p.references.length >= 2 &&
+    p.references.every((r: any) =>
+      typeof r === "object" &&
+      r.type === "video" &&
+      typeof r.title === "string" && r.title.trim().length > 0 &&
+      typeof r.url === "string" && r.url.trim().length > 0 && r.url.includes('youtube.com') &&
+      typeof r.author === "string" && r.author.trim().length > 0
+    );
+  
+  // ═════════════════════════════════════════════
+  // STANDARD FIELD VALIDATIONS
+  // ═════════════════════════════════════════════
+  
+  // Solutions (Python required - must be non-empty and executable)
+  const hasSolutions = p.solutions && typeof p.solutions.python === "string";
+  const hasValidSolutions = hasSolutions && p.solutions.python?.trim() && p.solutions.python.trim().length > 50; // At least 50 chars for a real solution
+  
+  // Test cases (5 required: 3 visible, 2 hidden)
+  const hasValidTestCases = Array.isArray(p.test_cases) && 
+    p.test_cases.length === 5 &&
+    p.test_cases.every((tc: any) => 
+      typeof tc === "object" &&
+      typeof tc.input === "string" &&
+      typeof tc.expectedOutput === "string" &&
+      (tc.isVisible === true || tc.isVisible === false)
+    );
+  
+  // Methods array
+  const hasMethods = Array.isArray(p.methods) && p.methods.length > 0;
+  
+  // Basic fields (description must be detailed - 4-6 sentences)
+  const hasBasicFields = (
     typeof p.title === "string" && p.title.trim().length > 0 &&
     typeof p.category === "string" && p.category.trim().length > 0 &&
     typeof p.difficulty === "string" && ['Easy', 'Medium', 'Hard'].includes(p.difficulty) &&
-    typeof p.description === "string" && p.description.trim().length > 0 &&
+    typeof p.description === "string" && p.description.trim().length > 100 // Must be detailed (at least 100 chars)
+  );
+  
+  const isValid = (
+    hasBasicFields &&
+    hasQuickRefresh &&
+    hasPatternName &&
+    hasValidApproaches &&
+    hasVisualBreakdown &&
+    hasValidReferences &&
     hasValidSolutions &&
     hasMethods &&
     hasValidTestCases
   );
   
   if (!isValid) {
-    console.error('Validation failed:', {
+    console.error('❌ Validation failed - Review Mode content missing or invalid:', {
+      // Basic fields
       hasTitle: typeof p.title === "string" && p.title?.trim().length > 0,
-      title: p.title?.substring(0, 50),
       hasCategory: typeof p.category === "string" && p.category?.trim().length > 0,
-      category: p.category,
       hasDifficulty: typeof p.difficulty === "string" && ['Easy', 'Medium', 'Hard'].includes(p.difficulty),
-      difficulty: p.difficulty,
-      hasDescription: typeof p.description === "string" && p.description?.trim().length > 0,
-      descriptionLength: p.description?.length,
-      hasSolutions: hasSolutions,
-      pythonLength: p.solutions?.python?.length,
-      javaLength: p.solutions?.java?.length,
-      cppLength: p.solutions?.cpp?.length,
-      jsLength: p.solutions?.javascript?.length,
-      hasMethods: hasMethods,
+      hasDescription: typeof p.description === "string" && p.description?.trim().length >= 100,
+      descriptionLength: p.description?.trim().length,
+      
+      // Review Mode fields
+      hasQuickRefresh,
+      quickRefreshCount: p.quick_refresh?.length,
+      hasPatternName,
+      patternName: p.pattern_name,
+      hasValidApproaches,
+      approachesCount: p.approaches?.length,
+      hasVisualBreakdown,
+      visualBreakdownLength: p.visual_breakdown?.length,
+      hasValidReferences,
+      referencesCount: p.references?.length,
+      
+      // Standard fields
+      hasValidSolutions,
+      pythonSolutionLength: p.solutions?.python?.trim().length,
+      pythonSolutionPreview: p.solutions?.python?.substring(0, 100),
+      hasMethods,
       methodsCount: p.methods?.length,
-      methods: p.methods,
       hasValidTestCases,
       testCasesCount: p.test_cases?.length,
-      testCases: p.test_cases?.slice(0, 2),
+      
+      // Sample data for debugging
+      firstQuickRefresh: p.quick_refresh?.[0],
+      firstApproach: p.approaches?.[0]?.name,
+      firstReference: p.references?.[0]?.title,
     });
   }
   
@@ -244,7 +395,9 @@ serve(async (req) => {
       creativeHint: randomHint,
       ...(existingTitles && existingTitles.length > 0 ? { existingTitles } : {}),
       ...(finalCategory ? { category: finalCategory } : {}),
-      ...(finalDifficulty ? { difficulty: finalDifficulty } : {})
+      ...(finalDifficulty ? { difficulty: finalDifficulty } : {}),
+      // Explicit instructions for generation
+      instructions: "Generate a COMPLETE problem with: 1) Detailed problem statement (4-6 sentences) FIRST with example input/output walkthrough, 2) 2-3 UNIQUE solution approaches (brute force + optimal + optional intermediate), 3) Diagrammatic visual breakdown, 4) 2-3 YouTube video references with actual URLs, 5) Complete executable Python solution (at least 50 characters). Ensure each approach uses a DIFFERENT algorithm/method. ALL fields are REQUIRED."
     };
     
     const data = await callOpenAI(openaiKey, requestBody);

@@ -38,17 +38,17 @@ export default function HomeScreen() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Load categories on initial mount
-        const initialCategories = await problemController.getCategories();
-        if (initialCategories && Array.isArray(initialCategories)) {
-          setCategories(initialCategories);
+        // Load all categories (including ones without problems)
+        const allCategories = await problemController.getCategories();
+        if (allCategories && Array.isArray(allCategories)) {
+          setCategories(allCategories);
         }
         
         // Fetch problems
         await fetchProblems();
       } catch (error) {
         console.error('Error initializing:', error);
-        // Ensure categories is always an array
+        // Ensure categories is always an array with at least 'All'
         setCategories(['All']);
       }
     };
@@ -89,15 +89,7 @@ export default function HomeScreen() {
       const fetchedProblems = await problemController.fetchProblems(filter);
       setProblems(fetchedProblems);
       
-      // Update categories list from database (including newly generated ones)
-      try {
-        const allCategories = await problemController.getCategories();
-        if (allCategories && Array.isArray(allCategories)) {
-          setCategories(allCategories);
-        }
-      } catch (error) {
-        console.error('Error updating categories:', error);
-      }
+      // Categories are now static (all possible categories), no need to update
     } catch (error) {
       console.error('Error fetching problems:', error);
     } finally {
@@ -129,18 +121,9 @@ export default function HomeScreen() {
       
       const newProblem = await problemController.generateNewProblem(request);
       
-      // Update categories to include the new problem's category
-      try {
-        const updatedCategories = await problemController.getCategories();
-        if (updatedCategories && Array.isArray(updatedCategories)) {
-          setCategories(updatedCategories);
-        }
-      } catch (error) {
-        console.error('Error updating categories after generation:', error);
-      }
-      
+      // Categories are now static (all possible categories), no need to update
       await fetchProblems();
-      (navigation as any).navigate('ProblemDetail', { problem: newProblem });
+      (navigation as any).navigate('ProblemReview', { problem: newProblem });
     } catch (error: any) {
       Alert.alert(
         'Generation Failed',
@@ -348,7 +331,7 @@ export default function HomeScreen() {
                     tw.border,
                     tw['border-dark-800']
                   )}
-                  onPress={() => (navigation as any).navigate('ProblemDetail', { problem })}
+                  onPress={() => (navigation as any).navigate('ProblemReview', { problem })}
                 >
                   <View style={cn(tw['flex-row'], tw['justify-between'], tw['items-start'], tw.mb(3))}>
                     <Text style={cn(tw['text-white'], tw['text-lg'], tw['font-bold'], tw.flex, tw.mr(2))}>

@@ -176,20 +176,35 @@ export class ProblemController {
     }
   }
 
+  // All possible problem categories (from database ENUM)
+  private static readonly ALL_CATEGORIES = [
+    'Array',
+    'String',
+    'Hash Table',
+    'Linked List',
+    'Stack',
+    'Queue',
+    'Tree',
+    'Graph',
+    'Dynamic Programming',
+    'Greedy',
+    'Backtracking',
+    'Binary Search',
+    'Two Pointers',
+    'Sliding Window',
+    'Sorting',
+    'Heap',
+    'Union Find',
+    'Trie',
+    'Segment Tree',
+    'Math',
+    'Geometry'
+  ];
+
   async getCategories(): Promise<string[]> {
-    try {
-      // Fetch all categories from database to ensure we get all categories including new ones
-      const dbCategories = await ProblemService.getCategories();
-      if (dbCategories && Array.isArray(dbCategories) && dbCategories.length > 0) {
-        return ['All', ...dbCategories.sort()];
-      }
-    } catch (error) {
-      console.warn('Failed to fetch categories from database, using local cache:', error);
-    }
-    
-    // Fallback to local cache
-    const categories = [...new Set(this.problems.map(problem => problem.category).filter(Boolean))];
-    return ['All', ...categories.sort()];
+    // Always return all possible categories so users can generate problems for any category
+    // even if no problems exist for that category yet
+    return ['All', ...ProblemController.ALL_CATEGORIES.sort()];
   }
 
   getDifficulties(): string[] {
