@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    // Workflows run inside an isolated V8 sandbox with no DOM and no Node
+    // globals. Restricting lib is what makes an accidental `document` or
+    // `setTimeout` a compile error instead of a replay-time failure.
+    "lib": ["es2022"],
+    "target": "es2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    // Required for readable workflow stack traces.
+    "sourceMap": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}
