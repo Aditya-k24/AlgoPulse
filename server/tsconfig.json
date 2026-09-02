@@ -15,9 +15,9 @@
     "forceConsistentCasingInFileNames": true,
     // Required for readable workflow stack traces.
     "sourceMap": true,
-    "rootDir": ".",
-    "outDir": "dist",
+    // tsx runs the sources directly, so nothing is emitted and rootDir would
+    // only get in the way of importing the shared event contract.
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "../shared/**/*.ts"]
 }
