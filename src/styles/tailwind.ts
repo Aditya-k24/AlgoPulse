@@ -400,7 +400,6 @@ export const tw = {
   'border-blue-500/30': { borderColor: 'rgba(59, 130, 246, 0.3)' },
   'border-purple-500/30': { borderColor: 'rgba(139, 92, 246, 0.3)' },
   'border-gray-500/30': { borderColor: 'rgba(107, 114, 128, 0.3)' },
-  'border-primary-500': { borderColor: colors.primary[500] },
   'border-success': { borderColor: colors.success },
   'border-warning': { borderColor: colors.warning },
   'border-error': { borderColor: colors.error },

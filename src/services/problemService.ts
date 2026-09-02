@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Problem, Difficulty } from '../models/Problem';
+import type { Approach, Reference } from '../models/ReviewContent';
 import { validateProblemPayload, ProblemPayload } from '../ai/problemSchema';
 
 export class ProblemService {
@@ -133,8 +134,7 @@ export class ProblemService {
     if (savedProblem && savedProblem.id) {
       try {
         const { ReviewContentService } = await import('./reviewContentService');
-        const { Approach, Reference } = await import('../models/ReviewContent');
-        
+
         // Convert approaches to ReviewContent format
         const reviewApproaches: Approach[] = (approaches || []).map((a: any, index: number) => ({
           name: a.name || `Approach ${index + 1}`,

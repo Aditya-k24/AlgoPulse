@@ -7,7 +7,8 @@ import { upsertRecalls } from '../utils/storage';
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -67,7 +68,7 @@ export class NotificationService {
             totalRecalls: recallDates.length
           },
         },
-        trigger: date,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
       });
 
       notificationIds.push(notificationId);
@@ -101,8 +102,7 @@ export class NotificationService {
     
     if (recalls[recallKey]) {
       recalls[recallKey].completed = true;
-      recalls[recallKey].completed_at = new Date().toISOString();
-      
+
       const { upsertRecalls } = await import('../utils/storage');
       await upsertRecalls([recalls[recallKey]]);
     }
