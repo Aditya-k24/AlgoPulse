@@ -12,14 +12,26 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { ProblemController } from '../controllers/ProblemController';
 import { AuthController } from '../controllers/AuthController';
+import { ProblemService } from '../services/problemService';
 import { Problem, Difficulty } from '../models/Problem';
 import { tw, cn } from '../styles/tailwind';
 import Logo from '../components/Logo';
+import AgentRunProgress from '../components/AgentRunProgress';
+import { useAgentRun } from '../hooks/useAgentRun';
+
+/**
+ * Escape hatch to the original blocking implementation.
+ *
+ * Kept deliberately: it is the "before" half of the before/after, and a
+ * one-flag fallback if the streaming path misbehaves during a live demo.
+ */
+const USE_LEGACY_GENERATION = process.env.EXPO_PUBLIC_USE_LEGACY_GENERATION === '1';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const authController = AuthController.getInstance();
   const problemController = ProblemController.getInstance();
+  const agentRun = useAgentRun();
   
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,23 +117,43 @@ export default function HomeScreen() {
 
   const generateScale = useState(new Animated.Value(1))[0];
 
+  const busy = USE_LEGACY_GENERATION ? generating : agentRun.isRunning;
+
+  // The streaming path finishes asynchronously, so navigation is driven by the
+  // terminal event rather than by the call returning.
+  useEffect(() => {
+    if (agentRun.state.status !== 'done' || !agentRun.state.problemId) return;
+
+    let cancelled = false;
+    (async () => {
+      const problem = await ProblemService.getProblemById(agentRun.state.problemId!);
+      if (cancelled) return;
+      await fetchProblems();
+      if (problem) {
+        (navigation as any).navigate('ProblemReview', { problem });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agentRun.state.status, agentRun.state.problemId]);
+
   const generateNewProblem = async () => {
-    if (generating) return; // Prevent multiple clicks
-    
+    if (busy) return; // Prevent multiple clicks
+
+    const category = selectedCategory !== 'All' ? selectedCategory : undefined;
+    const difficulty = selectedDifficulty !== 'All' ? (selectedDifficulty as Difficulty) : undefined;
+
+    if (!USE_LEGACY_GENERATION) {
+      // Returns as soon as the run is accepted; progress arrives over SSE.
+      await agentRun.start({ category, difficulty });
+      return;
+    }
+
     setGenerating(true);
-    
     try {
-      const category = selectedCategory !== 'All' ? selectedCategory : undefined;
-      const difficulty = selectedDifficulty !== 'All' ? selectedDifficulty as Difficulty : undefined;
-      
-      const request = {
-        category,
-        difficulty,
-      };
-      
-      const newProblem = await problemController.generateNewProblem(request);
-      
-      // Categories are now static (all possible categories), no need to update
+      const newProblem = await problemController.generateNewProblem({ category, difficulty });
       await fetchProblems();
       (navigation as any).navigate('ProblemReview', { problem: newProblem });
     } catch (error: any) {
@@ -247,9 +279,14 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
+        {/* Live agent progress — replaces the blank wait of the old path */}
+        {!USE_LEGACY_GENERATION && agentRun.state.status !== 'idle' ? (
+          <AgentRunProgress state={agentRun.state} onCancel={agentRun.cancel} />
+        ) : null}
+
         {/* Generate Button */}
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: generateScale }] }}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={cn(
               tw['bg-primary-600'],
               tw['rounded-lg'],
@@ -259,12 +296,12 @@ export default function HomeScreen() {
               tw.border,
               tw['border-primary-500'],
               tw['shadow-lg'],
-              generating && tw['opacity-70']
+              busy && { opacity: 0.7 }
             )}
             onPress={generateNewProblem}
-            disabled={generating}
+            disabled={busy}
             onPressIn={() => {
-              if (!generating) {
+              if (!busy) {
                 Animated.spring(generateScale, {
                   toValue: 0.96,
                   useNativeDriver: true,
@@ -274,7 +311,7 @@ export default function HomeScreen() {
               }
             }}
             onPressOut={() => {
-              if (!generating) {
+              if (!busy) {
                 Animated.spring(generateScale, {
                   toValue: 1,
                   useNativeDriver: true,
@@ -283,18 +320,18 @@ export default function HomeScreen() {
                 }).start();
               }
             }}
-            activeOpacity={generating ? 1 : 0.9}
+            activeOpacity={busy ? 1 : 0.9}
           >
             <View style={cn(tw['flex-row'], tw['items-center'], tw['justify-center'])}>
-              {generating && (
-                <ActivityIndicator 
-                  size="small" 
-                  color="#FFFFFF" 
+              {busy && (
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
                   style={{ marginRight: 8 }}
                 />
               )}
               <Text style={cn(tw['text-white'], tw['text-base'], tw['font-bold'], tw['text-center'])}>
-                {generating ? 'Generating...' : getGenerateButtonText()}
+                {busy ? 'Generating...' : getGenerateButtonText()}
             </Text>
             </View>
           </TouchableOpacity>
