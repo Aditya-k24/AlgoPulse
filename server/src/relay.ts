@@ -31,7 +31,14 @@ function makeProducer(): Producer {
 }
 
 async function main(): Promise<void> {
-  const pool = new Pool({ connectionString: config.databaseUrl, max: 4 });
+  // The drain is BEGIN/claim/produce/COMMIT — a discrete transaction, so the
+  // transaction pooler serves it fine. Only the listener below needs a
+  // session-mode connection, and session slots are the scarce resource.
+  const pool = new Pool({
+    connectionString: config.databasePoolUrl,
+    max: config.pool.relay,
+    idleTimeoutMillis: 5_000,
+  });
   const producer = makeProducer();
   await producer.connect();
   log.info('kafka producer connected', { brokers: config.kafkaBrokers });

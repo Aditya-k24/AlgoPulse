@@ -13,7 +13,17 @@ let pool: Pool | undefined;
 
 export function db(): Pool {
   if (!pool) {
-    pool = new Pool({ connectionString: config.databaseUrl, max: 10 });
+    // Bounded by the session pooler's 15-client ceiling; see config.pool.
+    // The short idle timeout returns connections promptly so a burst of
+    // activity does not leave the pool holding clients it no longer needs.
+    // Transaction-mode pooler: every operation here is a discrete query or
+    // transaction, none of them need a pinned session, and session-mode slots
+    // are the scarce resource (15 for this project).
+    pool = new Pool({
+      connectionString: config.databasePoolUrl,
+      max: config.pool.worker,
+      idleTimeoutMillis: 5_000,
+    });
   }
   return pool;
 }

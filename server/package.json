@@ -8,6 +8,8 @@
     "relay": "tsx src/relay.ts",
     "consumer": "tsx src/consumer.ts",
     "worker": "tsx src/worker.ts",
+    "bench:kafka": "tsx bench/kafka-throughput.ts",
+    "bench:orchestration": "tsx bench/orchestration.ts",
     "test": "node --import tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },

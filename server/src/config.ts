@@ -83,6 +83,31 @@ export const config = {
     'Use the session-mode pooler on port 5432; LISTEN does not survive the transaction pooler on 6543.'
   ),
 
+  /**
+   * Transaction-mode pooler (port 6543) for ordinary queries and
+   * transactions.
+   *
+   * The two pooler modes exist for different jobs and using session mode for
+   * everything wastes the scarcer resource. Session mode pins a server
+   * connection for the life of the client connection and this project is
+   * capped at 15 of them; transaction mode returns the connection at each
+   * commit and scales far higher.
+   *
+   * ONLY the relay's LISTEN registration genuinely needs a session, because
+   * transaction mode drops it at every implicit commit. Everything else —
+   * the worker's event writes, the persist transaction, the relay's own
+   * SKIP LOCKED drain — is a discrete unit of work that transaction mode
+   * handles correctly.
+   *
+   * Derived from the session URL by swapping the port, so there is one
+   * credential to maintain rather than two that can drift.
+   */
+  get databasePoolUrl(): string {
+    const override = process.env.SUPABASE_DB_URL_POOLED;
+    if (override) return override;
+    return this.databaseUrl.replace(/:5432(?=\/|$)/, ':6543');
+  },
+
   kafkaBrokers: optional('KAFKA_BROKERS', 'localhost:29092').split(','),
   temporalAddress: optional('TEMPORAL_ADDRESS', 'localhost:7233'),
   temporalNamespace: optional('TEMPORAL_NAMESPACE', 'default'),
@@ -95,6 +120,29 @@ export const config = {
 
   /** Deliberately injects a schema-invalid completion to demo self-repair. */
   chaosInvalidPayload: process.env.CHAOS_INVALID_PAYLOAD === '1',
+
+  /**
+   * Connection budget.
+   *
+   * Supabase's session-mode pooler allows 15 clients TOTAL for this project.
+   * The original settings claimed exactly that between them — worker pool 10,
+   * relay pool 4, relay listener 1 — leaving nothing for psql, migrations or
+   * a second worker, and any of those then failed with EMAXCONNSESSION.
+   *
+   * Headroom has to be generous rather than exact, because a SIGKILLed
+   * process does not close its pooler sessions: they linger server-side until
+   * Supavisor times them out. Measured six stale sessions still held 35
+   * minutes after a chaos run. Since killing workers is a thing this system
+   * is explicitly built to survive, the steady-state budget has to assume
+   * some connections are stranded.
+   *
+   * Only the relay's listener now uses a session slot, so these pool sizes
+   * apply to the transaction pooler and are no longer constrained by 15.
+   */
+  pool: {
+    worker: int('WORKER_POOL_MAX', 10),
+    relay: int('RELAY_POOL_MAX', 4),
+  },
 
   relay: {
     batchSize: int('RELAY_BATCH_SIZE', 100),
