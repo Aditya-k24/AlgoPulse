@@ -43,7 +43,11 @@ async function main(): Promise<void> {
 
   await consumer.connect();
   await producer.connect();
-  await consumer.subscribe({ topic: TOPIC_RUNS_REQUESTED, fromBeginning: false });
+  // fromBeginning matters only for a group with no committed offsets — a
+  // fresh deployment. Starting at the end there would silently skip anything
+  // already queued, which is the opposite of what this system promises.
+  // Duplicates from replaying are already harmless: workflowId = runId.
+  await consumer.subscribe({ topic: TOPIC_RUNS_REQUESTED, fromBeginning: true });
 
   log.info('consuming', { topic: TOPIC_RUNS_REQUESTED, group: 'agent-runner' });
 
@@ -54,14 +58,10 @@ async function main(): Promise<void> {
     // eachBatch rather than eachMessage: eachMessage issues one OffsetCommit
     // RPC per message, which becomes the bottleneck at benchmark rates for no
     // gain, since every message here does the same tiny amount of work.
-    eachBatch: async ({
-      batch,
-      resolveOffset,
-      heartbeat,
-      commitOffsetsIfNecessary,
-      isRunning,
-      isStale,
-    }) => {
+    eachBatch: async ({ batch, resolveOffset, heartbeat, isRunning, isStale }) => {
+      // Highest offset actually handed to Temporal (or parked in the DLQ).
+      let lastHandled: string | undefined;
+
       for (const message of batch.messages) {
         // Skipping these is the classic eachBatch bug: without them a worker
         // keeps processing a partition it no longer owns after a rebalance.
@@ -114,9 +114,29 @@ async function main(): Promise<void> {
         }
 
         resolveOffset(message.offset);
+        lastHandled = message.offset;
         await heartbeat();
       }
-      await commitOffsetsIfNecessary();
+
+      if (lastHandled !== undefined) {
+        // Commit EXPLICITLY. With autoCommit disabled, kafkajs's
+        // commitOffsetsIfNecessary() takes no action when called with no
+        // arguments — it only honours autoCommit thresholds, which are off.
+        // Leaving it at that meant this group never committed an offset at
+        // all, so a restarted consumer resumed from the end of the log and
+        // permanently skipped everything published while it was down. The
+        // steady-state path hid it, because a consumer that never restarts
+        // reads messages live and never consults a committed offset.
+        //
+        // Kafka commits the NEXT offset to read, hence +1.
+        await consumer.commitOffsets([
+          {
+            topic: batch.topic,
+            partition: batch.partition,
+            offset: String(Number(lastHandled) + 1),
+          },
+        ]);
+      }
     },
   });
 
