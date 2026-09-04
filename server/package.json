@@ -1,0 +1,32 @@
+{
+  "name": "algopulse-server",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Event-driven agent orchestration: outbox relay, Kafka consumer, Temporal worker.",
+  "scripts": {
+    "topics": "tsx src/scripts/createTopics.ts",
+    "relay": "tsx src/relay.ts",
+    "consumer": "tsx src/consumer.ts",
+    "worker": "tsx src/worker.ts",
+    "bench:kafka": "tsx bench/kafka-throughput.ts",
+    "bench:orchestration": "tsx bench/orchestration.ts",
+    "test": "node --import tsx --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@temporalio/activity": "1.23.0",
+    "@temporalio/client": "1.23.0",
+    "@temporalio/worker": "1.23.0",
+    "@temporalio/workflow": "1.23.0",
+    "kafkajs": "^2.2.4",
+    "openai": "^4.77.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@temporalio/testing": "1.23.0",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.2"
+  }
+}

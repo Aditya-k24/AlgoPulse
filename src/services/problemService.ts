@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Problem, Difficulty } from '../models/Problem';
+import type { Approach, Reference } from '../models/ReviewContent';
 import { validateProblemPayload, ProblemPayload } from '../ai/problemSchema';
 
 export class ProblemService {
@@ -95,15 +96,23 @@ export class ProblemService {
 
     const trimmedMethods = payload.methods ? trimMethods(payload.methods) : [];
     
+    // Extract fields that should NOT go to problems table
+    // approaches, references, quick_refresh, pattern_name, visual_breakdown go to separate tables
+    const { approaches, references, quick_refresh, pattern_name, visual_breakdown, ...problemFields } = payload as any;
+    
     const { data: savedProblem, error } = await supabase
       .from('problems')
       .insert({
-        ...payload,
+        ...problemFields,
         methods: trimmedMethods,
         sample_input: payload.sample_input || '',
         sample_output: payload.sample_output || '',
         constraints: payload.constraints || '',
         test_cases: testCasesWithIds.length > 0 ? testCasesWithIds : undefined,
+        // Save review mode fields to problems table
+        quick_refresh: quick_refresh || [],
+        pattern_name: pattern_name || '',
+        visual_breakdown: visual_breakdown || '',
       })
       .select()
       .single();
@@ -119,6 +128,48 @@ export class ProblemService {
         created_at: new Date().toISOString(),
         solutions: payload.solutions
       } as Problem;
+    }
+
+    // Save review content (approaches and references) to separate tables
+    if (savedProblem && savedProblem.id) {
+      try {
+        const { ReviewContentService } = await import('./reviewContentService');
+
+        // Convert approaches to ReviewContent format
+        const reviewApproaches: Approach[] = (approaches || []).map((a: any, index: number) => ({
+          name: a.name || `Approach ${index + 1}`,
+          type: a.type || 'optimal',
+          whenToUse: a.when_to_use || '',
+          coreIntuition: a.core_intuition || '',
+          steps: Array.isArray(a.steps) ? a.steps : [],
+          timeComplexity: a.time_complexity || 'O(n)',
+          spaceComplexity: a.space_complexity || 'O(1)',
+          pitfalls: a.pitfalls || undefined,
+          displayOrder: index,
+        }));
+
+        // Convert references to ReviewContent format
+        const reviewReferences: Reference[] = (references || []).map((r: any, index: number) => ({
+          type: (r.type || 'video') as 'video' | 'article',
+          title: r.title || '',
+          url: r.url || '',
+          author: r.author || undefined,
+          displayOrder: index,
+        }));
+
+        // Save review content
+        await ReviewContentService.saveReviewContent({
+          problemId: savedProblem.id,
+          quickRefresh: quick_refresh || [],
+          patternName: pattern_name || '',
+          approaches: reviewApproaches,
+          visualBreakdown: visual_breakdown || '',
+          references: reviewReferences,
+        });
+      } catch (reviewError) {
+        console.error('Error saving review content:', reviewError);
+        // Don't fail the whole operation if review content save fails
+      }
     }
 
     return savedProblem as Problem;

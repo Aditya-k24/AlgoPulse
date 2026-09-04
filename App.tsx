@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import AuthScreen from './src/views/AuthScreen';
 import HomeScreen from './src/views/HomeScreen';
-import ProblemDetailScreen from './src/views/ProblemDetailScreen';
+import ProblemReviewScreen from './src/views/ProblemReviewScreen';
 import DashboardScreen from './src/views/DashboardScreen';
 import SettingsScreen from './src/views/SettingsScreen';
 import LoadingSpinner from './src/components/LoadingSpinner';
@@ -72,13 +72,10 @@ function AppNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen 
-              name="ProblemDetail" 
-              component={ProblemDetailScreen}
+              name="ProblemReview" 
+              component={ProblemReviewScreen}
               options={{
-                headerShown: true,
-                headerTitle: '',
-                headerStyle: { backgroundColor: '#0F0F0F' },
-                headerTintColor: '#FFFFFF',
+                headerShown: false,
               }}
             />
           </>

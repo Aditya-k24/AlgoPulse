@@ -12,7 +12,7 @@ export async function requestPermission(): Promise<boolean> {
 export async function scheduleLocal(title: string, body: string, triggerDate: Date) {
   return Notifications.scheduleNotificationAsync({
     content: { title, body },
-    trigger: triggerDate,
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
   });
 }
 

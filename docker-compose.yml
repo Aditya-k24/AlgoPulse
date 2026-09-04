@@ -1,0 +1,150 @@
+name: algopulse
+
+# The laptop is the datacenter. Everything here dials out — to Supabase for
+# data, and to nothing else — so the phone only ever talks to Supabase over
+# HTTPS and no inbound port or tunnel is needed.
+
+services:
+  # --------------------------------------------------------------------------
+  # Kafka, KRaft mode, single broker. No ZooKeeper.
+  #
+  # Pinned to 3.9.x deliberately: kafkajs has not shipped since Feb 2023 and
+  # does not implement KIP-848, so it needs the classic consumer group
+  # protocol that Kafka 4.x moves away from.
+  # --------------------------------------------------------------------------
+  kafka:
+    image: apache/kafka:3.9.1
+    container_name: algopulse-kafka
+    ports:
+      - "29092:29092"
+    environment:
+      # Fixed cluster id. Changing it makes the formatted log dir unreadable.
+      CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      # Two listeners is not optional: the relay, consumer and worker run on
+      # the macOS host, where the hostname `kafka` does not resolve. In-compose
+      # clients use kafka:9092; host clients use localhost:29092.
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 8
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      # Topics are infrastructure — created explicitly by `npm run topics`.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      KAFKA_HEAP_OPTS: "-Xmx1G -Xms1G"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+    mem_limit: 2g
+
+  # --------------------------------------------------------------------------
+  # Temporal's own Postgres. Nothing to do with Supabase; this data is
+  # disposable, which is why the tuning below trades durability for speed.
+  # --------------------------------------------------------------------------
+  temporal-postgres:
+    image: postgres:16-alpine
+    container_name: algopulse-temporal-pg
+    ports:
+      # Exposed so the outbox tests can run SKIP LOCKED and LISTEN/NOTIFY
+      # against a real Postgres in a scratch database, rather than mocking
+      # semantics that are the entire point of the test.
+      - "55432:5432"
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    command: >
+      postgres
+      -c shared_buffers=1GB
+      -c max_connections=200
+      -c synchronous_commit=off
+      -c wal_writer_delay=200ms
+      -c checkpoint_timeout=30min
+      -c max_wal_size=4GB
+    volumes:
+      - temporal-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 5s
+      retries: 20
+    mem_limit: 2g
+
+  temporal:
+    image: temporalio/auto-setup:1.26.2
+    container_name: algopulse-temporal
+    depends_on:
+      temporal-postgres:
+        condition: service_healthy
+    ports:
+      - "7233:7233"
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+      # The single most important knob here, and it is IMMUTABLE after the
+      # first schema setup. auto-setup defaults to 4, which caps throughput at
+      # a few dozen workflows/sec no matter what else is tuned. Changing it
+      # later means `docker compose down -v` and starting over.
+      NUM_HISTORY_SHARDS: 512
+      ENABLE_ES: "false"
+      SKIP_DEFAULT_NAMESPACE_CREATION: "false"
+      DEFAULT_NAMESPACE_RETENTION: "1d"
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      LOG_LEVEL: warn
+    volumes:
+      - ./infra/dynamicconfig:/etc/temporal/config/dynamicconfig
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "temporal:7233"]
+      interval: 10s
+      retries: 20
+      start_period: 30s
+    mem_limit: 3g
+
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    container_name: algopulse-temporal-ui
+    depends_on:
+      - temporal
+    ports:
+      - "8233:8080"
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    mem_limit: 256m
+
+  kafka-ui:
+    # provectuslabs/kafka-ui is abandoned (last release 2023); kafbat is the
+    # maintained fork by the original authors.
+    image: ghcr.io/kafbat/kafka-ui:v1.0.0
+    container_name: algopulse-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    mem_limit: 512m
+
+volumes:
+  kafka-data:
+  temporal-pgdata:

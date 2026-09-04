@@ -177,10 +177,26 @@ export class ExecutionService {
       };
     }
 
-    const { data, error } = await supabase
+    // Try with 'exec_ms' first (simple schema), fallback to 'execution_time' (complete schema)
+    let data, error;
+    
+    const { data: data1, error: error1 } = await supabase
       .from('attempts')
       .select('verdict, exec_ms')
       .eq('user_id', user.id);
+    
+    if (!error1) {
+      data = data1;
+    } else {
+      // Fallback: try with 'execution_time' column
+      const { data: data2, error: error2 } = await supabase
+        .from('attempts')
+        .select('verdict, execution_time')
+        .eq('user_id', user.id);
+      
+      data = data2?.map(a => ({ ...a, exec_ms: a.execution_time }));
+      error = error2;
+    }
 
     if (error) {
       console.error('Error fetching user stats:', error);

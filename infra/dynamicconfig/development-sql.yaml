@@ -1,0 +1,28 @@
+# Temporal dynamic config. The auto-setup image fails to start if the mounted
+# path is missing, so this file must exist even when empty.
+#
+# The persistence QPS ceilings below are raised from Temporal's deliberately
+# conservative defaults because the benchmark tiers are meant to measure our
+# pipeline, not Temporal's built-in rate limiter.
+
+limit.maxIDLength:
+  - value: 255
+
+system.forceSearchAttributesCacheRefreshOnRead:
+  - value: true
+
+frontend.persistenceMaxQPS:
+  - value: 12000
+
+history.persistenceMaxQPS:
+  - value: 9000
+
+matching.persistenceMaxQPS:
+  - value: 9000
+
+# Task queue partitioning. Helps above roughly 500 tasks/sec, not before.
+matching.numTaskqueueReadPartitions:
+  - value: 8
+
+matching.numTaskqueueWritePartitions:
+  - value: 8

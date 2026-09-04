@@ -75,7 +75,7 @@ export default function DashboardScreen() {
         <Text style={cn(tw['text-white'], tw['text-3xl'], tw['font-bold'], tw.mb(1))}>
           Your Progress
         </Text>
-        <Text style={cn(tw['text-dark-400'], tw['text-base'])}>
+        <Text style={cn(tw['text-gray-400'], tw['text-base'])}>
           Keep your DSA heartbeat strong
         </Text>
       </View>
@@ -85,7 +85,7 @@ export default function DashboardScreen() {
             <Text style={cn(tw['text-primary-500'], tw['text-3xl'], tw['font-bold'], tw.mb(2))}>
               {stats.totalSolved}
             </Text>
-            <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
+            <Text style={cn(tw['text-gray-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
               PROBLEMS SOLVED
             </Text>
           </View>
@@ -93,7 +93,7 @@ export default function DashboardScreen() {
             <Text style={cn(tw['text-primary-500'], tw['text-3xl'], tw['font-bold'], tw.mb(2))}>
               {stats.totalRecalls}
             </Text>
-            <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
+            <Text style={cn(tw['text-gray-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
               RECALLS SCHEDULED
             </Text>
           </View>
@@ -101,19 +101,19 @@ export default function DashboardScreen() {
             <Text style={cn(tw['text-primary-500'], tw['text-3xl'], tw['font-bold'], tw.mb(2))}>
               {stats.streak}
             </Text>
-            <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
+            <Text style={cn(tw['text-gray-300'], tw['text-xs'], tw['font-semibold'], tw['text-center'])}>
               DAY STREAK
             </Text>
           </View>
         </View>
 
         <View style={tw.mb(8)}>
-          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+          <Text style={cn(tw['text-white'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
             CATEGORY MASTERY
           </Text>
           <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}>
             {Object.entries(stats.categoryStats).length === 0 ? (
-              <Text style={cn(tw['text-dark-400'], tw['text-sm'], tw['text-center'])}>
+              <Text style={cn(tw['text-gray-400'], tw['text-sm'], tw['text-center'])}>
                 No category data yet
               </Text>
             ) : (
@@ -139,15 +139,15 @@ export default function DashboardScreen() {
         </View>
 
         <View style={tw.mb(8)}>
-          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+          <Text style={cn(tw['text-white'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
             UPCOMING RECALLS
           </Text>
           {upcomingRecalls.length === 0 ? (
             <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(6), tw['items-center'], tw.border, tw['border-dark-800'])}>
-              <Text style={cn(tw['text-dark-400'], tw['text-base'], tw['text-center'], tw.mb(2))}>
+              <Text style={cn(tw['text-gray-400'], tw['text-base'], tw['text-center'], tw.mb(2))}>
                 No recalls scheduled for the next 7 days
               </Text>
-              <Text style={cn(tw['text-dark-400'], tw['text-sm'], tw['text-center'])}>
+              <Text style={cn(tw['text-gray-400'], tw['text-sm'], tw['text-center'])}>
                 Keep solving problems to build your recall schedule!
               </Text>
             </View>
@@ -158,8 +158,8 @@ export default function DashboardScreen() {
                   <Text style={cn(tw['text-white'], tw['text-base'], tw['font-bold'], tw.mb(2))}>
                     Problem Recall
                   </Text>
-                  <Text style={cn(tw['text-dark-400'], tw['text-sm'])}>
-                    Due: {new Date(recall.dueAt).toLocaleDateString()}
+                  <Text style={cn(tw['text-gray-400'], tw['text-sm'])}>
+                    Due: {new Date(recall.dueAt || recall.due_at || Date.now()).toLocaleDateString()}
                   </Text>
                 </View>
                 <View style={cn(tw['bg-warning'], tw['rounded-full'], tw.px(3), tw.py(1))}>
@@ -173,14 +173,14 @@ export default function DashboardScreen() {
         </View>
 
         <View style={tw.mb(8)}>
-          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+          <Text style={cn(tw['text-white'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
             YOUR PLAN
           </Text>
           <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}>
             <Text style={cn(tw['text-primary-500'], tw['text-base'], tw['font-bold'], tw.mb(2))}>
               {user?.plan === 'baseline' ? 'Baseline Plan' : 'Time Crunch Plan'}
             </Text>
-            <Text style={cn(tw['text-dark-400'], tw['text-sm'])}>
+            <Text style={cn(tw['text-gray-400'], tw['text-sm'])}>
               {user?.plan === 'baseline' 
                 ? 'Recall intervals: 1, 3, 7, 14, 30 days'
                 : 'Recall intervals: 1, 2, 5, 10 days'
@@ -190,11 +190,11 @@ export default function DashboardScreen() {
         </View>
 
         <View style={tw.mb(8)}>
-          <Text style={cn(tw['text-dark-300'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
+          <Text style={cn(tw['text-white'], tw['text-xs'], tw['font-semibold'], tw.mb(3))}>
             MOTIVATION
           </Text>
           <View style={cn(tw['bg-dark-900'], tw['rounded-2xl'], tw.p(5), tw.border, tw['border-dark-800'])}>
-            <Text style={cn(tw['text-dark-400'], tw['text-sm'], { fontStyle: 'italic' }, tw['text-center'], tw['leading-relaxed'])}>
+            <Text style={cn(tw['text-gray-300'], tw['text-sm'], tw['text-center'], tw['leading-relaxed'])}>
               "Consistency is the key to mastery. Every problem you recall strengthens your algorithmic thinking!"
             </Text>
           </View>

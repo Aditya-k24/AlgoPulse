@@ -1,0 +1,14 @@
+project_id = "wwstntrikjasjotnrnco"
+
+# The agent endpoints do their own authentication: _shared/http.ts builds a
+# Supabase client from the caller's JWT and calls auth.getUser(), which
+# verifies the token against the auth server rather than trusting its shape.
+#
+# Platform-level verify_jwt is disabled for them because it also rejects the
+# CORS preflight, which by specification carries no Authorization header. The
+# functions reject an unauthenticated request themselves with 401.
+[functions.agent-run]
+verify_jwt = false
+
+[functions.agent-stream]
+verify_jwt = false
