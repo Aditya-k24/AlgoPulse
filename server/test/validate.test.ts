@@ -7,7 +7,12 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateProblem, buildRepairNote, PROBLEM_CATEGORIES } from '../src/validate';
+import {
+  validateProblem,
+  buildRepairNote,
+  youtubeSearchUrl,
+  PROBLEM_CATEGORIES,
+} from '../src/validate';
 
 /** Minimal payload that satisfies every predicate. Tests mutate a clone. */
 function valid(): Record<string, unknown> {
@@ -40,8 +45,8 @@ function valid(): Record<string, unknown> {
     ],
     visual_breakdown: 'y'.repeat(60),
     references: [
-      { type: 'video', title: 'A', url: 'https://www.youtube.com/watch?v=1' },
-      { type: 'video', title: 'B', url: 'https://www.youtube.com/watch?v=2' },
+      { type: 'video', title: 'A', search_query: 'two pointers explained' },
+      { type: 'video', title: 'B', search_query: 'sliding window tutorial' },
     ],
     solutions: { python: 'def solve():\n    ' + 'p'.repeat(60) },
     test_cases: [1, 2, 3, 4, 5].map((n) => ({
@@ -156,17 +161,64 @@ describe('validateProblem', () => {
     assert.ok(errorsFor((p) => { p.visual_breakdown = 'tiny'; }).some((e) => /visual_breakdown/.test(e)));
   });
 
-  it('requires at least two youtube video references', () => {
+  it('requires at least two video references', () => {
     assert.ok(errorsFor((p) => { p.references = []; }).some((e) => /at least 2 entries/.test(e)));
+  });
+
+  // The model cannot know a real YouTube video id. Asking for one produced
+  // plausible inventions like watch?v=oBt53YbR9Kc that resolve to nothing, so
+  // every generated problem shipped with dead links.
+  it('rejects a reference that supplies a url instead of a search query', () => {
+    const errors = errorsFor((p) => {
+      const refs = p.references as Record<string, unknown>[];
+      delete refs[0]!.search_query;
+      refs[0]!.url = 'https://www.youtube.com/watch?v=oBt53YbR9Kc';
+    });
+    const err = errors.find((e) => /search_query/.test(e))!;
+    assert.ok(err, 'must reject a reference with no search_query');
+    assert.match(err, /dead link/, 'the repair prompt should say why a url is wrong');
+  });
+
+  it('rejects a search query too short to find anything', () => {
     assert.ok(
       errorsFor((p) => {
-        (p.references as Record<string, unknown>[])[0]!.url = 'https://example.com/x';
-      }).some((e) => /youtube\.com/.test(e))
+        (p.references as Record<string, unknown>[])[0]!.search_query = 'dp';
+      }).some((e) => /search_query/.test(e))
     );
   });
 
   it('requires a real python solution', () => {
     assert.ok(errorsFor((p) => { p.solutions = { python: 'pass' }; }).some((e) => /solutions\.python/.test(e)));
+  });
+
+  // Observed in production: the model collapsed an entire function onto one
+  // line, which is long enough to pass a length check and is not valid Python.
+  it('rejects a python solution collapsed onto a single line', () => {
+    const errors = errorsFor((p) => {
+      p.solutions = {
+        python:
+          'def max_points(points): n = len(points) if n == 0: return 0 if n == 1: return points[0] dp = [0] * n',
+      };
+    });
+    const err = errors.find((e) => /line breaks/.test(e))!;
+    assert.ok(err, 'a single-line solution must be rejected');
+    assert.match(err, /def/, 'the message should explain what is invalid about it');
+  });
+
+  it('rejects a multi-line solution with no indentation', () => {
+    assert.ok(
+      errorsFor((p) => {
+        p.solutions = { python: 'def solve(xs):\nreturn sum(xs)\n' + 'x'.repeat(60) };
+      }).some((e) => /indent/.test(e))
+    );
+  });
+
+  it('accepts properly formatted multi-line python', () => {
+    const p = valid();
+    p.solutions = {
+      python: 'def solve(nums, target):\n    left = 0\n    right = len(nums) - 1\n    return [left, right]',
+    };
+    assert.equal(validateProblem(p).ok, true);
   });
 
   it('requires exactly five test cases', () => {
@@ -184,6 +236,19 @@ describe('validateProblem', () => {
     });
     // One round trip per error would triple the LLM spend on a bad generation.
     assert.ok(errors.length >= 3, `expected several errors, got ${errors.length}`);
+  });
+});
+
+describe('youtubeSearchUrl', () => {
+  it('builds a search URL that always resolves', () => {
+    const url = youtubeSearchUrl('two pointers technique explained');
+    assert.equal(url, 'https://www.youtube.com/results?search_query=two%20pointers%20technique%20explained');
+  });
+
+  it('escapes characters that would break the query string', () => {
+    const url = youtubeSearchUrl('big-o & "amortised" cost?');
+    assert.ok(!/[ "]/.test(url.split('search_query=')[1]!), 'spaces and quotes must be encoded');
+    assert.match(url, /^https:\/\/www\.youtube\.com\/results\?search_query=/);
   });
 });
 

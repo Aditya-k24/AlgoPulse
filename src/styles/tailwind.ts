@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 // Color palette matching Tailwind CSS
 export const colors = {
@@ -329,7 +329,12 @@ export const tw = {
   'font-bold': { fontWeight: fontWeight.bold as any },
   'font-extrabold': { fontWeight: fontWeight.extrabold as any },
   'font-black': { fontWeight: fontWeight.black as any },
-  
+
+  // Font families. `font-mono` was referenced by the solution card but never
+  // defined here, so cn() silently dropped it and code rendered in the
+  // default proportional face.
+  'font-mono': { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+
   // Line heights
   'leading-none': { lineHeight: lineHeight.none },
   'leading-tight': { lineHeight: lineHeight.tight },

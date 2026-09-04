@@ -40,8 +40,23 @@ export interface ApproachPayload {
 export interface ReferencePayload {
   type: 'video' | 'article';
   title: string;
-  url: string;
+  /**
+   * What to search for, NOT a URL.
+   *
+   * The model cannot know a real YouTube video id, and asking for one gets
+   * plausible-looking inventions like `watch?v=oBt53YbR9Kc` that resolve to
+   * nothing. The URL is built from this by `youtubeSearchUrl`, which always
+   * lands somewhere useful.
+   */
+  search_query: string;
+  /** Legacy: rows generated before the switch to search queries. */
+  url?: string;
   author?: string;
+}
+
+/** Builds a YouTube search URL that is guaranteed to resolve. */
+export function youtubeSearchUrl(query: string): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 }
 
 export interface TestCasePayload {
@@ -155,8 +170,12 @@ export function validateProblem(raw: string | unknown): ValidationResult {
   const refs = arr(p.references) as ReferencePayload[];
   need(refs.length >= 2, `references must contain at least 2 entries (got ${refs.length})`);
   need(
-    refs.every((r) => r?.type === 'video' && isStr(r?.url) && r.url.includes('youtube.com')),
-    'every reference must have type "video" and a url containing youtube.com'
+    refs.every((r) => r?.type === 'video'),
+    'every reference must have type "video"'
+  );
+  need(
+    refs.every((r) => isStr(r?.search_query) && r.search_query.trim().length >= 5),
+    'every reference needs a "search_query" of at least 5 characters, not a url — an invented video id resolves to a dead link'
   );
   need(
     refs.every((r) => isStr(r?.title) && r.title.trim().length > 0),
@@ -167,6 +186,17 @@ export function validateProblem(raw: string | unknown): ValidationResult {
   need(
     isStr(python) && python.trim().length > 50,
     `solutions.python must be a real working solution over 50 characters (got ${isStr(python) ? python.trim().length : 0})`
+  );
+  // A def with its body on the same line is not valid Python. The model
+  // collapses solutions onto one line unless told not to, and length alone
+  // does not catch it.
+  need(
+    isStr(python) && python.includes('\n'),
+    'solutions.python must contain real line breaks (\\n) — a function body on the same line as its "def" is not valid Python'
+  );
+  need(
+    !isStr(python) || !python.includes('\n') || /\n[ \t]+\S/.test(python),
+    'solutions.python must indent its body — use 4 spaces after each "def", "if" and "for"'
   );
 
   const tc = arr(p.test_cases) as TestCasePayload[];

@@ -277,11 +277,24 @@ export default function ProblemReviewScreen({ route, navigation }: Props) {
             <Text style={cn(tw['text-white'], tw['text-lg'], tw['font-bold'], tw.mb(3))}>
               💻 Python Solution
             </Text>
-            <View style={cn(tw['bg-dark-800'], tw['rounded-lg'], tw.p(4))}>
-              <Text style={cn(tw['text-gray-200'], tw['text-sm'], tw['font-mono'], tw.leading(6))}>
+            {/* Horizontal scroll rather than wrapping: a wrapped line of code
+                reads as a different indentation level and is actively
+                misleading. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={cn(tw['bg-dark-800'], tw['rounded-lg'])}
+              contentContainerStyle={tw.p(4)}
+            >
+              <Text
+                style={cn(tw['text-gray-200'], tw['font-mono'], {
+                  fontSize: 13,
+                  lineHeight: 20,
+                })}
+              >
                 {problem.solutions.python}
               </Text>
-            </View>
+            </ScrollView>
           </View>
         )}
 

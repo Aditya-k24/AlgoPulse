@@ -14,7 +14,7 @@ import { Context, ApplicationFailure } from '@temporalio/activity';
 import { appendEvent, setRunStatus, recentTitles, getRun, profileIdFor, db } from './db';
 import { streamCompletion } from './llm';
 import { SYSTEM_PROMPT, buildUserPrompt, CREATIVE_HINTS } from './prompt';
-import { validateProblem, buildRepairNote, type ProblemPayload } from './validate';
+import { validateProblem, buildRepairNote, youtubeSearchUrl, type ProblemPayload } from './validate';
 import type { AgentEvent, Phase } from '../../shared/agentEvents';
 import { logger, errField } from './logger';
 
@@ -233,11 +233,15 @@ export async function persist(input: PersistInput): Promise<{ problemId: string 
 
     await client.query('delete from problem_references where problem_id = $1::uuid', [problemId]);
     for (const [i, r] of p.references.entries()) {
+      // Built from the model's search query rather than taken from it. Asking
+      // for a URL yields invented video ids that resolve to nothing; a search
+      // URL always lands on relevant results.
+      const url = r.search_query ? youtubeSearchUrl(r.search_query) : r.url ?? null;
       await client.query(
         `insert into problem_references
            (problem_id, reference_type, title, url, author, display_order)
          values ($1::uuid, $2, $3, $4, $5, $6)`,
-        [problemId, r.type, r.title, r.url, r.author ?? null, i]
+        [problemId, r.type, r.title, url, r.author ?? null, i]
       );
     }
 

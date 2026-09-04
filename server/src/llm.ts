@@ -155,13 +155,13 @@ function validPayload(): Record<string, unknown> {
       {
         type: 'video',
         title: 'Two Pointers Technique, explained',
-        url: 'https://www.youtube.com/watch?v=On03HWe2tZM',
+        search_query: 'two pointers technique explained',
         author: 'NeetCode',
       },
       {
         type: 'video',
         title: 'Two Sum II with two pointers',
-        url: 'https://www.youtube.com/watch?v=cQ1Oz4ckceM',
+        search_query: 'two sum ii sorted array two pointers',
         author: 'NeetCode',
       },
     ],
